@@ -1,0 +1,346 @@
+require('dotenv').config();
+const express  = require('express');
+const http     = require('http');
+const WebSocket = require('ws');
+const { v4: uuidv4 } = require('uuid');
+const path     = require('path');
+const fs       = require('fs');
+const cors     = require('cors');
+const { JSW_KNOWLEDGE_BASE } = require('./knowledge');
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+app.use(express.static(path.join(__dirname, 'public')));
+const server = http.createServer(app);
+
+// ── ZERO-DEPENDENCY JSON FILE DATABASE ──────────────────
+// No native compilation needed — works on Windows, Mac, Linux
+// Data is stored in leads.json next to server.js
+const DB_FILE = path.join(__dirname, 'leads.json');
+
+function loadDB() {
+  try {
+    if (fs.existsSync(DB_FILE)) return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+  } catch (_) {}
+  return { leads: [] };
+}
+
+function saveDB(data) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+}
+
+const db = {
+  insertLead(id, sessionId) {
+    const data = loadDB();
+    data.leads.push({
+      id, session_id: sessionId,
+      name: null, company: null, phone: null, email: null,
+      product_interest: null, project_type: null,
+      quantity_mt: null, timeline: null,
+      intent_level: 'low', intent_reason: null,
+      transcript: '[]', language: 'english',
+      duration_secs: 0,
+      contact_form_submitted: false,
+      contact_form_query: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    saveDB(data);
+  },
+
+  updateLead(id, fields) {
+    const data = loadDB();
+    const lead = data.leads.find(l => l.id === id);
+    if (!lead) return;
+    for (const [k, v] of Object.entries(fields)) {
+      if (v !== null && v !== undefined && v !== '') lead[k] = v;
+    }
+    lead.updated_at = new Date().toISOString();
+    saveDB(data);
+  },
+
+  setTranscript(id, json) {
+    const data = loadDB();
+    const lead = data.leads.find(l => l.id === id);
+    if (lead) { lead.transcript = json; lead.updated_at = new Date().toISOString(); saveDB(data); }
+  },
+
+  setDuration(id, secs) {
+    const data = loadDB();
+    const lead = data.leads.find(l => l.id === id);
+    if (lead) { lead.duration_secs = secs; lead.updated_at = new Date().toISOString(); saveDB(data); }
+  },
+
+  getLeads(intentFilter) {
+    let leads = [...loadDB().leads].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    if (intentFilter && intentFilter !== 'all') leads = leads.filter(l => l.intent_level === intentFilter);
+    return leads.map(l => ({ ...l, transcript: JSON.parse(l.transcript || '[]') }));
+  },
+
+  getLead(id) {
+    const lead = loadDB().leads.find(l => l.id === id);
+    if (!lead) return null;
+    return { ...lead, transcript: JSON.parse(lead.transcript || '[]') };
+  },
+
+  getStats() {
+    const leads = loadDB().leads;
+    return {
+      total: leads.length,
+      high: leads.filter(l => l.intent_level === 'high').length,
+      medium: leads.filter(l => l.intent_level === 'medium').length,
+      low: leads.filter(l => l.intent_level === 'low').length,
+      qualified: leads.filter(l => l.name !== null).length
+    };
+  }
+};
+
+// ── SYSTEM PROMPT ────────────────────────────────────────
+const SYSTEM_PROMPT = `You are a JSW Steel customer support agent.
+Your ONLY job is helping people buy or learn about JSW Steel products.
+
+== RESPONSE LENGTH — MOST IMPORTANT RULE ==
+Maximum 2 short sentences. Never more. Count your sentences before replying.
+If you are about to say a third sentence, STOP and delete it.
+This is a voice call. Long answers are rude.
+
+== YOU ARE A JSW STEEL EMPLOYEE ==
+- You only know about JSW Steel. You have no knowledge of any other company or topic.
+- When someone says "sales team" or "sales rep" they mean JSW Steel's team. Always.
+- Never ask "which company". Never say you cannot connect. Just call show_contact_form.
+
+== LANGUAGE ==
+- Detect Hindi or English from the user's first reply.
+- Respond in the same language throughout. Switch if they switch.
+- For Hindi: use simple conversational Hindi, keep English technical terms (TMT, HR coil, MT).
+
+== HARD REFUSAL — say this exact line ==
+"I only help with JSW Steel products. What steel requirement can I assist with?"
+Use for: general knowledge, competitors, off-topic questions, anything not about buying steel.
+
+== CALL show_contact_form IMMEDIATELY — no follow-up questions first ==
+Triggers: pricing question, quote request, bulk order, "sales team", "human", "connect me",
+          complex requirement, anything you are not 100% sure about.
+After calling it say only: "Form aa gaya — fill karein, hamari team call karegi."
+Or in English: "A form appeared — fill it and our team calls you back."
+
+== QUALIFICATION — ask ONE per turn only ==
+"Aap kaunsa JSW product dhundh rahe hain?" / "Which JSW product are you looking for?"
+"Kitni matra chahiye — roughly bhi chalega?" / "What quantity do you need — rough is fine?"
+"Delivery kab chahiye?" / "When do you need delivery?"
+"Kisi specific project ke liye hai?" / "Is this for a specific project?"
+"Aap decision maker hain?" / "Are you the decision maker?"
+
+== INTENT — call capture_lead_info whenever you learn something new ==
+high = quantity >5MT AND delivery <3 months AND specific project AND decision maker
+medium = any 2 of above
+low = general inquiry or just researching
+
+== KNOWLEDGE BASE ==
+${JSW_KNOWLEDGE_BASE}`;
+
+// ── TOOLS ────────────────────────────────────────────────
+const REALTIME_TOOLS = [{
+  type: 'function',
+  name: 'capture_lead_info',
+  description: 'Capture and update customer/lead information as it is revealed during conversation. Call this whenever you learn anything new.',
+  parameters: {
+    type: 'object',
+    properties: {
+      name:             { type: 'string' },
+      company:          { type: 'string' },
+      phone:            { type: 'string' },
+      email:            { type: 'string' },
+      product_interest: { type: 'string' },
+      project_type:     { type: 'string' },
+      quantity_mt:      { type: 'number' },
+      timeline:         { type: 'string' },
+      intent_level:     { type: 'string', enum: ['high', 'medium', 'low'] },
+      intent_reason:    { type: 'string' }
+    }
+  }
+}, {
+  type: 'function',
+  name: 'show_contact_form',
+  description: 'Show callback/contact form when user wants to speak to sales, get a quote, or has a complex requirement. Call immediately when user asks for human, quote, or callback.',
+  parameters: {
+    type: 'object',
+    properties: {
+      reason: { type: 'string', description: 'Reason: sales_rep_request | quote_request | complex_query' }
+    }
+  }
+}];
+
+// ── SESSION STORE ────────────────────────────────────────
+const sessions = new Map();
+
+// ── WEBSOCKET SERVER ─────────────────────────────────────
+const wss = new WebSocket.Server({ server, path: '/realtime' });
+
+wss.on('connection', (clientWs) => {
+  const sessionId = uuidv4();
+  const leadId    = uuidv4();
+  const startTime = Date.now();
+  let greetingSent = false;
+  console.log(`[${sessionId.slice(0,8)}] Browser connected`);
+
+  sessions.set(sessionId, { leadId, lead: {}, transcript: [], language: 'english', openAiWs: null });
+  db.insertLead(leadId, sessionId);
+
+  const openAiWs = new WebSocket(
+    'wss://api.openai.com/v1/realtime?model=gpt-realtime-2.1',
+    { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } }
+  );
+
+  sessions.get(sessionId).openAiWs = openAiWs;
+
+  openAiWs.on('open', () => {
+    console.log(`[${sessionId.slice(0,8)}] OpenAI connected`);
+    openAiWs.send(JSON.stringify({
+      type: 'session.update',
+      session: {
+        type: 'realtime',
+        instructions: SYSTEM_PROMPT,
+        output_modalities: ['audio'],
+        audio: {
+          input: {
+            format: { type: 'audio/pcm', rate: 24000 },
+            turn_detection: { type: 'semantic_vad' },
+            transcription: {
+              model: 'whisper-1',
+              prompt: 'JSW Steel, स्टील, TMT बार, HR कोइल, CR शीट, गैल्वेनाइज्ड, डिलीवरी, मात्रा'
+            }
+          },
+          output: {
+            format: { type: 'audio/pcm', rate: 24000 },
+            voice: 'ash'
+          }
+        },
+        tools: REALTIME_TOOLS,
+        tool_choice: 'auto'
+      }
+    }));
+  });
+
+  openAiWs.on('message', (raw) => {
+    const ev      = JSON.parse(raw.toString());
+    const session = sessions.get(sessionId);
+    if (!session) return;
+
+    if (ev.type === 'session.updated') {
+      if (!greetingSent) {
+        greetingSent = true;
+        setTimeout(() => {
+          if (openAiWs.readyState === WebSocket.OPEN) {
+            openAiWs.send(JSON.stringify({
+              type: 'response.create',
+              response: {
+                instructions: 'Say ONLY this exact sentence word for word, nothing more, do not improvise: "Welcome to JSW Steel — India\'s largest and most trusted steel manufacturer. I\'m JSW Assist, your personal steel advisor. Shall we speak in Hindi, or would you prefer English?"'
+              }
+            }));
+          }
+        }, 1500);
+      }
+    }
+
+    if (ev.type === 'response.function_call_arguments.done' && ev.name === 'capture_lead_info') {
+      try { handleLeadCapture(sessionId, ev.call_id, JSON.parse(ev.arguments)); } catch (e) { console.error(e.message); }
+    }
+
+    if (ev.type === 'response.function_call_arguments.done' && ev.name === 'show_contact_form') {
+      if (clientWs.readyState === WebSocket.OPEN) {
+        clientWs.send(JSON.stringify({ type: 'show_contact_form', leadId: session.leadId }));
+      }
+      const oaWs = session.openAiWs;
+      if (oaWs?.readyState === WebSocket.OPEN) {
+        oaWs.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: ev.call_id, output: '{"success":true}' }}));
+        oaWs.send(JSON.stringify({ type: 'response.create' }));
+      }
+    }
+
+    if (ev.type === 'conversation.item.input_audio_transcription.completed' && ev.transcript?.trim()) {
+      session.transcript.push({ role: 'user', text: ev.transcript, ts: new Date().toISOString() });
+      db.setTranscript(leadId, JSON.stringify(session.transcript));
+      if (/[\u0900-\u097F]/.test(ev.transcript) ||
+        /\b(kya|hai|mujhe|aap|hum|yeh|woh|main|nahi|haan|theek|accha|namaste|bataiye|chahiye)\b/i.test(ev.transcript))
+        session.language = 'hindi';
+    }
+
+    if (ev.type === 'response.output_audio_transcript.done' && ev.transcript?.trim()) {
+      session.transcript.push({ role: 'assistant', text: ev.transcript, ts: new Date().toISOString() });
+      db.setTranscript(leadId, JSON.stringify(session.transcript));
+    }
+
+    if (clientWs.readyState === WebSocket.OPEN) clientWs.send(raw.toString());
+  });
+
+  openAiWs.on('error', (e) => {
+    console.error(`[${sessionId.slice(0,8)}] OpenAI error:`, e.message);
+    if (clientWs.readyState === WebSocket.OPEN)
+      clientWs.send(JSON.stringify({ type: 'error', message: e.message }));
+  });
+
+  openAiWs.on('close', () => console.log(`[${sessionId.slice(0,8)}] OpenAI closed`));
+
+  clientWs.on('message', (data) => {
+    if (openAiWs.readyState === WebSocket.OPEN) openAiWs.send(data.toString());
+  });
+
+  clientWs.on('close', () => {
+    const secs = Math.round((Date.now() - startTime) / 1000);
+    console.log(`[${sessionId.slice(0,8)}] Browser disconnected (${secs}s)`);
+    db.setDuration(leadId, secs);
+    openAiWs.close();
+    sessions.delete(sessionId);
+  });
+
+  clientWs.send(JSON.stringify({ type: 'session.init', sessionId, leadId }));
+});
+
+function handleLeadCapture(sessionId, callId, args) {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  Object.assign(session.lead, Object.fromEntries(
+    Object.entries(args).filter(([, v]) => v !== null && v !== undefined && v !== '')
+  ));
+  db.updateLead(session.leadId, { ...session.lead, language: session.language });
+  console.log(`[${sessionId.slice(0,8)}] Lead: ${session.lead.name || '?'} | ${session.lead.intent_level || 'low'}`);
+  const oaWs = session.openAiWs;
+  if (oaWs?.readyState === WebSocket.OPEN) {
+    oaWs.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: callId, output: '{"success":true}' }}));
+    oaWs.send(JSON.stringify({ type: 'response.create' }));
+  }
+}
+
+// ── REST API ─────────────────────────────────────────────
+app.get('/api/leads',     (req, res) => res.json(db.getLeads(req.query.intent)));
+app.get('/api/leads/:id', (req, res) => { const l = db.getLead(req.params.id); l ? res.json(l) : res.status(404).json({error:'Not found'}); });
+app.get('/api/stats',     (req, res) => res.json(db.getStats()));
+
+app.post('/api/leads/:id/form', (req, res) => {
+  const { name, phone, email, query } = req.body;
+  const data = loadDB();
+  const lead = data.leads.find(l => l.id === req.params.id);
+  if (!lead) return res.status(404).json({ error: 'Not found' });
+  if (name)  lead.name  = name;
+  if (phone) lead.phone = phone;
+  if (email) lead.email = email;
+  if (query) lead.contact_form_query = query;
+  lead.contact_form_submitted = true;
+  lead.updated_at = new Date().toISOString();
+  saveDB(data);
+  res.json({ success: true });
+});
+
+// ── START ────────────────────────────────────────────────
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log('');
+  console.log('  ╔══════════════════════════════════════╗');
+  console.log('  ║      JSW Steel Voice Bot Server      ║');
+  console.log(`  ║  http://localhost:${PORT}               ║`);
+  console.log('  ║  Dashboard → /dashboard.html         ║');
+  console.log('  ╚══════════════════════════════════════╝');
+  console.log('');
+});

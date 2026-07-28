@@ -1,0 +1,6 @@
+node_modules/
+.env
+.env.backup
+leads.json
+*.db
+npm-debug.log

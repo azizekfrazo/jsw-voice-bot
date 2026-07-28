@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>JSW Steel – Sales Dashboard</title>
+<style>
+  :root {
+    --jsw-blue:  #002B5C;
+    --jsw-bmid:  #0A4B87;
+    --jsw-orange:#E87722;
+    --jsw-bg:    #F0F4F8;
+    --card:      #FFFFFF;
+    --text:      #1A1A2E;
+    --muted:     #6B7280;
+    --border:    #E5E7EB;
+    --high:      #16A34A;
+    --high-bg:   #DCFCE7;
+    --med:       #D97706;
+    --med-bg:    #FEF3C7;
+    --low:       #6B7280;
+    --low-bg:    #F3F4F6;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--jsw-bg);color:var(--text)}
+
+  header{
+    background:var(--jsw-blue);color:white;
+    padding:0 28px;height:60px;
+    display:flex;align-items:center;justify-content:space-between;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  }
+  .logo-area{display:flex;align-items:center;gap:12px}
+  .logo-badge{background:var(--jsw-orange);color:white;font-size:18px;font-weight:800;padding:4px 10px;border-radius:4px;letter-spacing:1px}
+  .logo-sub{font-size:13px;opacity:0.7}
+  .back-link{color:rgba(255,255,255,0.8);text-decoration:none;font-size:13px;padding:6px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:6px}
+  .back-link:hover{background:rgba(255,255,255,0.1)}
+
+  .page{padding:28px;max-width:1100px;margin:0 auto}
+  .page-title{font-size:20px;font-weight:700;margin-bottom:20px;color:var(--jsw-blue)}
+
+  /* Stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+  .stat-card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,43,92,0.07)}
+  .stat-label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px}
+  .stat-value{font-size:32px;font-weight:700}
+  .stat-card.total  .stat-value{color:var(--jsw-blue)}
+  .stat-card.high   .stat-value{color:var(--high)}
+  .stat-card.medium .stat-value{color:var(--med)}
+  .stat-card.low    .stat-value{color:var(--low)}
+
+  /* Filters */
+  .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .filter-btn{
+    padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;
+    border:2px solid var(--border);background:white;color:var(--muted);
+    transition:all 0.15s;
+  }
+  .filter-btn:hover{border-color:var(--jsw-blue);color:var(--jsw-blue)}
+  .filter-btn.active{border-color:var(--jsw-blue);background:var(--jsw-blue);color:white}
+  .filter-btn.high.active{border-color:var(--high);background:var(--high)}
+  .filter-btn.med.active{border-color:var(--med);background:var(--med)}
+  .refresh-btn{
+    margin-left:auto;padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+    border:none;background:var(--jsw-orange);color:white;
+  }
+  .refresh-btn:hover{background:var(--jsw-orange-dk,#C4611A)}
+
+  /* Table */
+  .table-card{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,43,92,0.07)}
+  table{width:100%;border-collapse:collapse}
+  thead{background:var(--jsw-blue);color:white}
+  thead th{padding:13px 16px;text-align:left;font-size:12px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
+  tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;cursor:pointer}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:#F5F9FF}
+  td{padding:12px 16px;font-size:14px}
+  .td-name{font-weight:600;color:var(--text)}
+  .td-muted{color:var(--muted);font-size:13px}
+  .td-product{color:var(--jsw-bmid);font-size:13px}
+
+  /* Intent badge */
+  .badge{
+    display:inline-flex;align-items:center;gap:4px;
+    padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;
+  }
+  .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+  .badge-high  {background:var(--high-bg);color:var(--high)}
+  .badge-medium{background:var(--med-bg);color:var(--med)}
+  .badge-low   {background:var(--low-bg);color:var(--low)}
+
+  /* Time */
+  .td-time{font-size:12px;color:var(--muted)}
+  .td-lang{font-size:12px;color:var(--muted);text-transform:uppercase}
+
+  .no-data{padding:48px;text-align:center;color:var(--muted);font-size:14px}
+
+  /* ── MODAL ── */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);
+    z-index:100;align-items:center;justify-content:center;padding:20px;
+  }
+  .overlay.open{display:flex}
+  .modal{
+    background:white;border-radius:16px;width:100%;max-width:600px;
+    max-height:90vh;overflow:hidden;display:flex;flex-direction:column;
+    box-shadow:0 20px 60px rgba(0,0,0,0.25);
+  }
+  .modal-header{
+    background:var(--jsw-blue);color:white;
+    padding:18px 24px;display:flex;align-items:center;justify-content:space-between;
+    flex-shrink:0;
+  }
+  .modal-title{font-size:16px;font-weight:700}
+  .modal-close{background:none;border:none;color:white;font-size:22px;cursor:pointer;line-height:1;opacity:0.7}
+  .modal-close:hover{opacity:1}
+  .modal-body{overflow-y:auto;flex:1;padding:24px;display:flex;flex-direction:column;gap:20px}
+
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .detail-item{background:#F8FAFC;border-radius:8px;padding:10px 14px}
+  .detail-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px}
+  .detail-value{font-size:14px;font-weight:600;color:var(--text)}
+
+  .transcript-section h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+  .transcript-msgs{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto}
+  .t-msg{padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.5}
+  .t-msg.user{background:var(--jsw-blue);color:white;align-self:flex-end;max-width:80%;border-bottom-right-radius:2px}
+  .t-msg.assistant{background:#F0F4F8;color:var(--text);max-width:80%;border-bottom-left-radius:2px;border-left:3px solid var(--jsw-orange)}
+  .t-msg-role{font-size:10px;font-weight:700;opacity:0.6;margin-bottom:3px;letter-spacing:0.3px}
+
+  .intent-banner{
+    border-radius:10px;padding:14px;text-align:center;font-weight:700;font-size:16px;
+  }
+  .intent-banner.high  {background:var(--high-bg);color:var(--high)}
+  .intent-banner.medium{background:var(--med-bg);color:var(--med)}
+  .intent-banner.low   {background:var(--low-bg);color:var(--low)}
+
+  @media(max-width:640px){
+    .stats{grid-template-columns:1fr 1fr}
+    .detail-grid{grid-template-columns:1fr}
+    td:nth-child(3),td:nth-child(4),td:nth-child(5),th:nth-child(3),th:nth-child(4),th:nth-child(5){display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <span class="logo-badge">JSW</span>
+    <span class="logo-sub">Steel — Sales Dashboard</span>
+  </div>
+  <a href="index.html" class="back-link">← Back to Bot</a>
+</header>
+
+<div class="page">
+  <div class="page-title">Lead Intelligence Dashboard</div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card total">
+      <div class="stat-label">Total Leads</div>
+      <div class="stat-value" id="stat-total">—</div>
+    </div>
+    <div class="stat-card high">
+      <div class="stat-label">High Intent</div>
+      <div class="stat-value" id="stat-high">—</div>
+    </div>
+    <div class="stat-card medium">
+      <div class="stat-label">Medium Intent</div>
+      <div class="stat-value" id="stat-medium">—</div>
+    </div>
+    <div class="stat-card low">
+      <div class="stat-label">Low Intent</div>
+      <div class="stat-value" id="stat-low">—</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="filter-btn active" onclick="filterLeads('all',this)">All Leads</button>
+    <button class="filter-btn high"   onclick="filterLeads('high',this)">High Intent</button>
+    <button class="filter-btn med"    onclick="filterLeads('medium',this)">Medium Intent</button>
+    <button class="filter-btn"        onclick="filterLeads('low',this)">Low Intent</button>
+    <button class="refresh-btn"       onclick="loadAll()">↻ Refresh</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Name / Company</th>
+          <th>Intent</th>
+          <th>Product Interest</th>
+          <th>Quantity</th>
+          <th>Timeline</th>
+          <th>Language</th>
+          <th>Form</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody id="leads-body">
+        <tr><td colspan="7" class="no-data">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-name">Lead Detail</span>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
