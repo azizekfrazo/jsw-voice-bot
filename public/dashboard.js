@@ -46,7 +46,7 @@ async function loadLeads(intent = 'all') {
     allLeads   = await res.json();
     renderTable(allLeads);
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="7" class="no-data">Error loading leads</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="no-data">Error loading leads</td></tr>`;
   }
 }
 
@@ -54,7 +54,7 @@ function renderTable(leads) {
   const tbody = document.getElementById('leads-body');
 
   if (!leads.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="no-data">No leads yet — start a conversation!</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="no-data">No leads yet — start a conversation!</td></tr>`;
     return;
   }
 
@@ -80,6 +80,7 @@ function renderTable(leads) {
         <td class="td-muted">${time}</td>
         <td class="td-lang">${lang}</td>
         <td>${lead.contact_form_submitted ? '<span style="color:#16A34A;font-weight:700;font-size:12px">✓ Submitted</span>' : '<span style="color:#9CA3AF;font-size:12px">—</span>'}</td>
+        <td class="td-muted">${formatDuration(lead.duration_secs)}</td>
         <td class="td-time">${ago}</td>
       </tr>`;
   }).join('');
@@ -122,7 +123,7 @@ async function openModal(id) {
     ['Phone',            lead.phone],
     ['Email',            lead.email],
     ['Language',         lead.language ? lead.language.charAt(0).toUpperCase() + lead.language.slice(1) : null],
-    ['Duration',         lead.duration_secs ? `${lead.duration_secs}s` : null],
+    ['Duration',         lead.duration_secs ? formatDuration(lead.duration_secs) : null],
     ['Query / Requirement', lead.contact_form_query],
     ['Form Submitted', lead.contact_form_submitted ? 'Yes' : 'No'],
   ].filter(([, v]) => v);
@@ -181,6 +182,13 @@ function esc(s) {
   return String(s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatDuration(secs) {
+  if (!secs) return '—';
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 function timeAgo(isoStr) {

@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JSW Steel — Shaping the Future of Modern India</title>
+<style>
+  :root {
+    --jsw-navy:   #0A1628;
+    --jsw-navy2:  #0D2045;
+    --jsw-blue:   #1A3A6C;
+    --jsw-orange: #E87722;
+    --jsw-orange2:#D4661A;
+    --jsw-gray:   #F4F4F4;
+    --jsw-text:   #1A1A1A;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #fff;
+    color: var(--jsw-text);
+  }
+
+  /* ═══════════ SECTION 1 — STICKY HEADER ═══════════ */
+  header {
+    background: var(--jsw-navy);
+    height: 72px;
+    position: sticky; top: 0; z-index: 200;
+    display: flex; align-items:center; justify-content:space-between;
+    padding: 0 32px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.35);
+  }
+  .logo-area { display:flex; align-items:center; gap:10px; }
+  .logo-badge {
+    background: var(--jsw-orange); color:white; font-weight:900; font-size:18px;
+    padding:6px 12px; border-radius:4px; letter-spacing:1px;
+  }
+  .logo-word { color:white; font-size:16px; font-weight:600; letter-spacing:1px; }
+  nav.main-nav { display:flex; gap:34px; }
+  nav.main-nav a {
+    color: rgba(255,255,255,0.82); text-decoration:none; font-size:12.5px;
+    font-weight:600; letter-spacing:1.2px; text-transform:uppercase;
+    transition: color 0.2s;
+  }
+  nav.main-nav a:hover { color: var(--jsw-orange); }
+  .enquire-btn {
+    background: var(--jsw-orange); color:white; border:none;
+    padding:11px 24px; border-radius:5px; font-size:13px; font-weight:700;
+    letter-spacing:0.4px; cursor:pointer; transition: background 0.2s;
+  }
+  .enquire-btn:hover { background: var(--jsw-orange2); }
+
+  @media(max-width:900px){ nav.main-nav { display:none; } }
+
+  /* ═══════════ SECTION 2 — HERO ═══════════ */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display:flex; align-items:center;
+    overflow:hidden;
+    background:
+      linear-gradient(45deg, rgba(10,22,40,0.93) 0%, rgba(26,58,108,0.88) 100%),
+      repeating-linear-gradient(115deg, #0D2045 0px, #0D2045 2px, #101F3C 2px, #101F3C 40px);
+  }
+  .hero-content { position:relative; z-index:2; padding-left:8%; max-width:640px; }
+  .hero-label {
+    color: var(--jsw-orange); font-size:13px; font-weight:800; letter-spacing:2px;
+    margin-bottom:18px; text-transform:uppercase;
+  }
+  .hero h1 {
+    color:white; font-size:64px; font-weight:800; line-height:1.12; margin-bottom:22px;
+  }
+  .hero-sub {
+    color: rgba(255,255,255,0.78); font-size:18px; line-height:1.6; max-width:520px; margin-bottom:34px;
+  }
+  .hero-btn-row { display:flex; gap:16px; margin-bottom:52px; flex-wrap:wrap; }
+  .hero-btn {
+    padding: 15px 34px; border-radius:6px; font-size:15px; font-weight:700; cursor:pointer;
+    transition: all 0.2s;
+  }
+  .hero-btn.solid { background:var(--jsw-orange); color:white; border:none; }
+  .hero-btn.solid:hover { background:var(--jsw-orange2); }
+  .hero-btn.outline { background:transparent; color:white; border:2px solid rgba(255,255,255,0.6); }
+  .hero-btn.outline:hover { background:rgba(255,255,255,0.1); border-color:white; }
+  .hero-stats { display:flex; gap:44px; flex-wrap:wrap; }
+  .hero-stats .hs-item { color:white; }
+  .hero-stats .hs-num { font-size:22px; font-weight:800; color: var(--jsw-orange); }
+  .hero-stats .hs-lbl { font-size:12.5px; opacity:0.7; margin-top:2px; }
+
+  @media(max-width:720px){
+    .hero h1 { font-size:38px; }
+    .hero-content { padding-left:6%; padding-right:6%; }
+  }
+
+  /* ═══════════ SECTION 3 — PRODUCTS ═══════════ */
+  .products-section { background:white; padding:80px 24px; max-width:1180px; margin:0 auto; }
+  .sec-title { text-align:center; font-size:36px; font-weight:800; color:var(--jsw-navy); margin-bottom:10px; }
+  .sec-sub { text-align:center; font-size:15px; color:#6B7280; margin-bottom:48px; }
+  .product-grid {
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:24px;
+  }
+  .product-card {
+    background: var(--jsw-navy); border-top:4px solid var(--jsw-orange);
+    border-radius: 8px; padding:28px 22px; transition:transform 0.2s, box-shadow 0.2s;
+  }
+  .product-card:hover { transform: translateY(-5px); box-shadow:0 16px 32px rgba(10,22,40,0.25); }
+  .product-icon {
+    width:44px; height:44px; margin-bottom:18px; color: var(--jsw-orange);
+  }
+  .product-card h3 { color:white; font-size:18px; font-weight:700; margin-bottom:10px; }
+  .product-card p { color:rgba(255,255,255,0.65); font-size:13.5px; line-height:1.55; margin-bottom:16px; }
+  .learn-more { color:var(--jsw-orange); font-size:13px; font-weight:700; text-decoration:none; }
+
+  /* ═══════════ SECTION 4 — TRUST BAR ═══════════ */
+  .trust-bar {
+    background: var(--jsw-navy); padding:44px 24px;
+    display:flex; justify-content:center; gap:56px; flex-wrap:wrap;
+  }
+  .trust-item { display:flex; align-items:center; gap:10px; color:white; font-size:14px; font-weight:600; }
+  .trust-check {
+    width:22px; height:22px; border-radius:50%; background:var(--jsw-orange);
+    color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; flex-shrink:0;
+  }
+
+  footer.page-footer {
+    background:#08111F; color:rgba(255,255,255,0.5); text-align:center; padding:26px; font-size:12px;
+  }
+  footer.page-footer a { color: var(--jsw-orange); text-decoration:none; }
+
+  /* ═══════════════════════════════════════════════
+     BOT SIDEBAR WIDGET
+     ═══════════════════════════════════════════════ */
+  #widget-trigger {
+    position:fixed; right:28px; bottom:28px; z-index:1001;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    cursor:pointer; background:none; border:none;
+  }
+  #widget-trigger-circle {
+    width:60px; height:60px; border-radius:50%; background:var(--jsw-orange);
+    display:flex; align-items:center; justify-content:center; color:white;
+    box-shadow:0 8px 26px rgba(232,119,34,0.5);
+    animation: trigger-pulse 2.4s infinite;
+  }
+  #widget-trigger-circle svg { width:26px; height:26px; }
+  @keyframes trigger-pulse {
+    0%,100% { box-shadow:0 8px 26px rgba(232,119,34,0.5); }
+    50%     { box-shadow:0 8px 26px rgba(232,119,34,0.85), 0 0 0 10px rgba(232,119,34,0.12); }
+  }
+  #widget-trigger-label { font-size:11px; font-weight:700; color:var(--jsw-navy); background:white; padding:3px 9px; border-radius:20px; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+
+  #widget-panel {
+    position:fixed; right:0; top:0; bottom:0; width:380px; max-width:92vw;
+    background: var(--jsw-gray);
+    box-shadow: -4px 0 24px rgba(0,0,0,0.3);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    z-index:1000;
+    display:flex; flex-direction:column;
+  }
+  #widget-panel.open { transform: translateX(0); }
+
+  #widget-header {
+    height:60px; background:var(--jsw-navy); flex-shrink:0;
+    display:flex; align-items:center; justify-content:space-between; padding:0 16px;
+  }
+  .w-header-left { display:flex; align-items:center; gap:10px; }
+  .w-badge { background:var(--jsw-orange); color:white; font-size:11px; font-weight:900; padding:3px 8px; border-radius:4px; }
+  .w-name { color:white; font-size:14px; font-weight:700; }
+  #widget-status-dot { width:8px; height:8px; border-radius:50%; background:#6B7280; }
+  #widget-status-dot.active { background:#22C55E; }
+  .w-header-right { display:flex; align-items:center; gap:6px; }
+  .w-header-right button {
+    background:none; border:none; color:white; opacity:0.75; cursor:pointer;
+    font-size:18px; width:28px; height:28px; border-radius:4px;
+  }
+  .w-header-right button:hover { opacity:1; background:rgba(255,255,255,0.1); }
+
+  #widget-body { flex:1; position:relative; overflow:hidden; display:flex; flex-direction:column; }
+
+  .widget-state { display:none; }
+
+  /* STATE 2 — CONNECTING */
+  #state-connecting {
+    flex-direction:column; align-items:center; justify-content:center; gap:14px; height:100%; color:#4B5563; font-size:14px;
+  }
+  .spinner {
+    width:34px; height:34px; border-radius:50%;
+    border:3px solid #E5E7EB; border-top-color:var(--jsw-orange);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* STATE 3/4 — TRANSCRIPT + CONVERSATION */
+  #state-conversation { flex-direction:column; height:100%; }
+  #widget-transcript { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  #widget-transcript:empty::before {
+    content:"Say hello to JSW Assist…"; color:#9CA3AF; font-size:13px; text-align:center; margin-top:40px; display:block;
+  }
+  .w-msg { max-width:82%; padding:10px 14px; border-radius:12px; font-size:13.5px; line-height:1.45; }
+  .w-msg.assistant { align-self:flex-start; background:white; border-left:3px solid var(--jsw-orange); border-bottom-left-radius:3px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+  .w-msg.user { align-self:flex-end; background:var(--jsw-navy); color:white; border-bottom-right-radius:3px; }
+  .w-msg-label { font-size:9px; font-weight:700; opacity:0.55; margin-bottom:3px; letter-spacing:0.4px; }
+
+  /* Language card */
+  #widget-lang-card {
+    display:none; flex-direction:column; align-items:center; gap:14px;
+    background:white; margin:0 16px 16px; padding:18px; border-radius:10px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.08); flex-shrink:0;
+  }
+  .lang-card-title { font-size:13px; font-weight:700; color:var(--jsw-navy); text-align:center; }
+  .lang-btn-row { display:flex; gap:12px; }
+  .lang-btn {
+    width:140px; height:48px; background:white; border:2px solid var(--jsw-navy); color:var(--jsw-navy);
+    border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; transition:all 0.15s;
+  }
+  .lang-btn:hover { background:var(--jsw-orange); border-color:var(--jsw-orange); color:white; }
+
+  /* Bottom bar — active conversation */
+  #widget-bottom-bar {
+    display:none; flex-direction:column; align-items:center; gap:8px;
+    padding:14px 16px 18px; background:white; border-top:1px solid #E5E7EB; flex-shrink:0;
+  }
+  .waveform { display:flex; gap:3px; align-items:center; height:26px; opacity:0; transition:opacity 0.25s; }
+  .waveform.active { opacity:1; }
+  .waveform span { width:4px; border-radius:3px; background:var(--jsw-orange); animation:wave 1s ease-in-out infinite; }
+  .waveform span:nth-child(1){animation-delay:0s;   height:7px;}
+  .waveform span:nth-child(2){animation-delay:0.1s; height:13px;}
+  .waveform span:nth-child(3){animation-delay:0.2s; height:19px;}
+  .waveform span:nth-child(4){animation-delay:0.3s; height:24px;}
+  .waveform span:nth-child(5){animation-delay:0.4s; height:19px;}
+  .waveform span:nth-child(6){animation-delay:0.5s; height:13px;}
+  .waveform span:nth-child(7){animation-delay:0.6s; height:7px;}
+  @keyframes wave { 0%,100%{transform:scaleY(0.4)} 50%{transform:scaleY(1.1)} }
+
+  #widget-mic-btn {
+    width:50px; height:50px; border-radius:50%; border:none; cursor:default;
+    background:var(--jsw-navy); color:white; display:flex; align-items:center; justify-content:center;
+    transition: background 0.2s;
+  }
+  #widget-mic-btn svg { width:20px; height:20px; }
+  #widget-mic-btn.listening { background:var(--jsw-orange); animation: mic-pulse 1.4s infinite; }
+  #widget-mic-btn.speaking  { background:#1565C0; animation:none; }
+  @keyframes mic-pulse {
+    0%,100% { box-shadow:0 0 0 0 rgba(232,119,34,0.5); }
+    50%     { box-shadow:0 0 0 8px rgba(232,119,34,0); }
+  }
+  #widget-status-text { font-size:12.5px; color:#6B7280; min-height:16px; }
+  #widget-end-btn {
+    background:none; border:none; color:#DC2626; font-size:12.5px; font-weight:700; cursor:pointer;
+    margin-top:2px; text-decoration:underline;
+  }
+
+  /* STATE 5 — ENDED */
+  #state-ended {
+    flex-direction:column; align-items:center; justify-content:center; gap:16px; height:100%; padding:32px; text-align:center;
+  }
+  #state-ended p { color:var(--jsw-navy); font-size:14.5px; font-weight:600; line-height:1.5; }
+  #state-ended button {
+    background:var(--jsw-orange); color:white; border:none; padding:11px 26px; border-radius:6px;
+    font-size:13.5px; font-weight:700; cursor:pointer;
+  }
+
+  /* ═══════════ CONTACT FORM POPUP ═══════════ */
+  #widget-cf-overlay {
+    display:none; position:fixed; inset:0; background:rgba(10,22,40,0.75);
+    z-index:2000; align-items:center; justify-content:center; padding:20px;
+  }
+  #widget-cf-overlay.open { display:flex; }
+  #widget-cf-card {
+    background:white; border-radius:16px; width:100%; max-width:420px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.35); overflow:hidden;
+  }
+  #widget-cf-card .cf-header {
+    background:var(--jsw-navy); color:white; padding:18px 22px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  #widget-cf-card .cf-header .cf-title { font-size:15px; font-weight:700; }
+  #widget-cf-card .cf-header .cf-sub { font-size:12px; opacity:0.7; margin-top:2px; }
+  #widget-cf-card .cf-close { background:none; border:none; color:white; font-size:20px; cursor:pointer; opacity:0.75; }
+  #widget-cf-card .cf-close:hover { opacity:1; }
+  #widget-cf-card form { padding:22px; display:flex; flex-direction:column; gap:12px; }
+  #widget-cf-card input, #widget-cf-card textarea {
+    padding:10px 13px; border:1.5px solid #E5E7EB; border-radius:8px; font-size:14px;
+    width:100%; outline:none; font-family:inherit;
+  }
+  #widget-cf-card input:focus, #widget-cf-card textarea:focus { border-color:var(--jsw-navy); }
+  #widget-cf-card button[type="submit"] {
+    background:var(--jsw-orange); color:white; border:none; padding:12px;
+    border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; margin-top:2px;
+  }
+  #widget-cf-card button[type="submit"]:hover { background:var(--jsw-orange2); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <span class="logo-badge">JSW</span>
+    <span class="logo-word">Steel</span>
+  </div>
+  <nav class="main-nav">
+    <a href="#products">Products</a>
+    <a href="#about">About JSW</a>
+    <a href="#sustainability">Sustainability</a>
+    <a href="#investors">Investors</a>
+    <a href="#careers">Careers</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <button class="enquire-btn" onclick="toggleWidgetPanel()">Enquire Now</button>
+</header>
+
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-label">India's Leading Steel Producer</div>
+    <h1>Shaping the Future<br>of Modern India</h1>
+    <p class="hero-sub">JSW Steel is one of India's largest and most trusted integrated steel manufacturers, delivering world-class products across construction, automotive, and infrastructure sectors.</p>
+    <div class="hero-btn-row">
+      <button class="hero-btn solid" onclick="document.getElementById('products').scrollIntoView({behavior:'smooth'})">Explore Products</button>
+      <button class="hero-btn outline" onclick="document.getElementById('about').scrollIntoView({behavior:'smooth'})">Our Story</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hs-item"><div class="hs-num">26 MTPA</div><div class="hs-lbl">Capacity</div></div>
+      <div class="hs-item"><div class="hs-num">100+</div><div class="hs-lbl">Countries</div></div>
+      <div class="hs-item"><div class="hs-num">40,000+</div><div class="hs-lbl">Employees</div></div>
+      <div class="hs-item"><div class="hs-num">Est. 1982</div><div class="hs-lbl">Founded</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="products-section" id="products">
+  <div class="sec-title">Our Products</div>
+  <div class="sec-sub">Comprehensive steel solutions for every industry</div>
+  <div class="product-grid">
+    <div class="product-card">
+      <svg class="product-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="4"/><line x1="8" y1="20" x2="20" y2="8"/></svg>
+      <h3>JSW Neosteel TMT Bars</h3>
+      <p>BIS-certified seismic-resistant TMT bars for residential and infrastructure projects.</p>
+      <a class="learn-more" href="#products">Learn More →</a>
+    </div>
+    <div class="product-card">
+      <svg class="product-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+      <h3>Hot Rolled Coils &amp; Sheets</h3>
+      <p>High-strength HR coils for automotive, pipes, and structural fabrication.</p>
+      <a class="learn-more" href="#products">Learn More →</a>
+    </div>
+    <div class="product-card">
+      <svg class="product-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="4"/><rect x="3" y="11" width="18" height="4"/><rect x="3" y="17" width="18" height="2"/></svg>
+      <h3>Colour Coated Sheets</h3>
+      <p>Colourtuf PPGI/PPGL sheets for roofing, cladding and architectural applications.</p>
+      <a class="learn-more" href="#products">Learn More →</a>
+    </div>
+    <div class="product-card">
+      <svg class="product-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 4v6c0 4.5-3 7.5-7 8-4-0.5-7-3.5-7-8V7l7-4z"/></svg>
+      <h3>Galvanized Products</h3>
+      <p>Corrosion-resistant GI/GP/GA sheets for construction and automotive.</p>
+      <a class="learn-more" href="#products">Learn More →</a>
+    </div>
+  </div>
+</section>
+
+<section class="trust-bar">
+  <div class="trust-item"><span class="trust-check">✓</span> BIS &amp; ISO Certified</div>
+  <div class="trust-item"><span class="trust-check">✓</span> Pan-India Dealer Network</div>
+  <div class="trust-item"><span class="trust-check">✓</span> Export to 100+ Countries</div>
+  <div class="trust-item"><span class="trust-check">✓</span> 40+ Years of Excellence</div>
+</section>
+
+<footer class="page-footer" id="about">
+  <div style="margin-bottom:6px" id="sustainability">JSW Steel Limited — Part of the JSW Group</div>
+  <div id="investors" style="margin-bottom:6px">Investor Relations &amp; Careers information available on request.</div>
+  <div id="contact">© 2025 JSW Steel Limited. All rights reserved. &nbsp;|&nbsp; <a href="dashboard.html">Sales Dashboard</a></div>
+</footer>
+
+<!-- ═══════════ BOT SIDEBAR WIDGET ═══════════ -->
+<button id="widget-trigger" onclick="toggleWidgetPanel()">
+  <div id="widget-trigger-circle">
+    <svg id="trigger-icon-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+    </svg>
+    <svg id="trigger-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none">
+      <line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/>
+    </svg>
+  </div>
+  <span id="widget-trigger-label">JSW Assist</span>
+</button>
+
+<div id="widget-panel">
+  <div id="widget-header">
+    <div class="w-header-left">
+      <span class="w-badge">JSW</span>
+      <span class="w-name">JSW Assist</span>
+      <span id="widget-status-dot"></span>
+    </div>
+    <div class="w-header-right">
+      <button id="widget-minimize-btn" onclick="minimizePanel()" title="Minimize">—</button>
+      <button id="widget-close-btn" onclick="closePanelAndEnd()" title="Close">✕</button>
+    </div>
+  </div>
+
+  <div id="widget-body">
+
+    <div id="state-connecting" class="widget-state">
+      <div class="spinner"></div>
+      <div>Connecting to JSW Assist...</div>
+    </div>
+
+    <div id="state-conversation" class="widget-state">
+      <div id="widget-transcript"></div>
+
+      <div id="widget-lang-card">
+        <div class="lang-card-title">Choose your language / भाषा चुनें</div>
+        <div class="lang-btn-row">
+          <button class="lang-btn" onclick="selectLanguage('en')">English</button>
+          <button class="lang-btn" onclick="selectLanguage('hi')">हिंदी</button>
+        </div>
+      </div>
+
+      <div id="widget-bottom-bar">
+        <div class="waveform" id="widget-waveform">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <button id="widget-mic-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="12" rx="3"/>
+            <path d="M5 10a7 7 0 0014 0"/>
+            <line x1="12" y1="22" x2="12" y2="17"/>
+            <line x1="9"  y1="22" x2="15" y2="22"/>
+          </svg>
+        </button>
+        <div id="widget-status-text">Listening…</div>
+        <button id="widget-end-btn" onclick="endConversation()">End Conversation</button>
+      </div>
+    </div>
+
+    <div id="state-ended" class="widget-state">
+      <p>Conversation ended. Thank you for contacting JSW Steel!</p>
+      <button onclick="startNewConversation()">Start New Conversation</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ CONTACT FORM POPUP ═══════════ -->
+<div id="widget-cf-overlay">
+  <div id="widget-cf-card">
+    <div class="cf-header">
+      <div>
+        <div class="cf-title">Connect with Sales Team</div>
+        <div class="cf-sub">Our rep will call you back shortly</div>
+      </div>
+      <button class="cf-close" onclick="closeContactForm()">✕</button>
+    </div>
+    <form onsubmit="submitWidgetContactForm(event)">
+      <input  id="widget-cf-name"  placeholder="Full Name *" required/>
+      <input  id="widget-cf-phone" type="tel" placeholder="Phone Number *" required/>
+      <input  id="widget-cf-email" type="email" placeholder="Email Address"/>
+      <textarea id="widget-cf-query" rows="3" placeholder="Your requirement or question..."></textarea>
+      <button type="submit">Submit — Get Callback</button>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────
+   JSW Assist — Sidebar Widget Logic
+   Adapted from public/app.js for the sliding sidebar panel.
+   ───────────────────────────────────────────────────────── */
+
+// Panel / trigger state
+let panelOpen  = false;
+let widgetState = 'idle'; // idle | connecting | language | active | ended
+
+// Session state
+let wWs             = null;
+let wAudioCtx        = null;
+let wMicStream       = null;
+let wProcessor       = null;
+let wIsActive        = false;
+let wIsSpeaking      = false;
+let wLanguageChosen  = false;
+let wChosenLanguage  = null;
+let wGreetingAudioDone = false;
+let wUserMsgPending  = false;
+const wSeenMessages  = new Set();
+
+// Playback queue
+let wAudioQueue      = [];
+let wPlaybackActive  = false;
+let wNextPlayAt      = 0;
+let wCurrentSource   = null;
+let wEchoCooldown    = false;
+
+// Inactivity auto-end
+let wLastActivityAt   = null;
+let wInactivityTimer  = null;
+const INACTIVITY_LIMIT_MS = 120000;
+
+// ─────────────────────────────────────────────
+//  PANEL / TRIGGER
+// ─────────────────────────────────────────────
+function toggleWidgetPanel() {
+  if (panelOpen) {
+    // The trigger button shows an × while open — clicking it should
+    // end the conversation, not just hide the panel (that's what
+    // the minimize "—" button inside the header is for).
+    closePanelAndEnd();
+  } else {
+    showPanel();
+    if (widgetState === 'idle') {
+      setWidgetState('connecting');
+      startWidgetSession();
+    }
+  }
+}
+
+function showPanel() {
+  document.getElementById('widget-panel').classList.add('open');
+  document.getElementById('trigger-icon-mic').style.display = 'none';
+  document.getElementById('trigger-icon-close').style.display = '';
+  panelOpen = true;
+}
+
+function hidePanel() {
+  document.getElementById('widget-panel').classList.remove('open');
+  document.getElementById('trigger-icon-mic').style.display = '';
+  document.getElementById('trigger-icon-close').style.display = 'none';
+  panelOpen = false;
+}
+
+// Minimize: hide panel only — WebSocket & mic stay alive.
+function minimizePanel() {
+  hidePanel();
+}
+
+// Close: end the conversation entirely, then hide panel.
+function closePanelAndEnd() {
+  endConversation();
+  hidePanel();
+}
+
+function setWidgetState(state) {
+  widgetState = state;
+  document.getElementById('state-connecting').style.display   = state === 'connecting' ? 'flex' : 'none';
+  document.getElementById('state-conversation').style.display = (state === 'language' || state === 'active') ? 'flex' : 'none';
+  document.getElementById('state-ended').style.display        = state === 'ended' ? 'flex' : 'none';
+
+  document.getElementById('widget-lang-card').style.display  = state === 'language' ? 'flex' : 'none';
+  document.getElementById('widget-bottom-bar').style.display = state === 'active' ? 'flex' : 'none';
+
+  document.getElementById('widget-status-dot').classList.toggle('active', state === 'language' || state === 'active');
+}
+
+// ─────────────────────────────────────────────
+//  SESSION / WEBSOCKET
+// ─────────────────────────────────────────────
+async function startWidgetSession() {
+  wGreetingAudioDone = false;
+  wLanguageChosen = false;
+  wChosenLanguage = null;
+
+  try {
+    wAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+  } catch (e) { console.error(e); }
+
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  wWs = new WebSocket(`${proto}://${location.host}/realtime`);
+
+  wWs.onopen = () => { wIsActive = true; };
+  wWs.onmessage = (evt) => handleWidgetEvent(JSON.parse(evt.data));
+  wWs.onerror = (err) => console.error('[Widget WS] Error', err);
+  wWs.onclose = () => { wIsActive = false; };
+}
+
+function handleWidgetEvent(ev) {
+  switch (ev.type) {
+    case 'session.init':
+      break;
+
+    case 'response.output_audio.delta':
+      if (ev.delta) { enqueueWidgetAudio(ev.delta); setWidgetSpeaking(); }
+      wLastActivityAt = Date.now();
+      break;
+
+    case 'response.output_audio.done':
+      wLastActivityAt = Date.now();
+      if (!wGreetingAudioDone) {
+        wGreetingAudioDone = true;
+        setWidgetState('language');
+      } else {
+        waitAndSetWidgetListening();
+      }
+      break;
+
+    case 'conversation.item.input_audio_transcription.completed': {
+      const rawText = ev.transcript?.trim();
+      if (!rawText) break;
+      // Whisper is locked to the chosen language via session.update,
+      // so the transcript always arrives clean — no script-detection hacks needed.
+      const box = document.getElementById('widget-transcript');
+      const placeholders = box ? box.querySelectorAll('.w-msg.user') : [];
+      const last = placeholders[placeholders.length - 1];
+      if (last && last.textContent.includes('...')) {
+        last.innerHTML = '<div class="w-msg-label">YOU</div>' + wEscHtml(rawText);
+        wSeenMessages.delete('user::...');
+        wSeenMessages.add('user::' + rawText.slice(0, 80));
+      } else {
+        appendWidgetMessage('user', rawText);
+      }
+      break;
+    }
+
+    case 'response.output_audio_transcript.done':
+      if (ev.transcript?.trim()) appendWidgetMessage('assistant', ev.transcript);
+      break;
+
+    case 'input_audio_buffer.speech_started':
+      wAudioQueue = [];
+      wPlaybackActive = false;
+      wNextPlayAt = 0;
+      if (wCurrentSource) { try { wCurrentSource.stop(); } catch(_) {} wCurrentSource = null; }
+      setWidgetListening();
+      wUserMsgPending = true;
+      wLastActivityAt = Date.now();
+      break;
+
+    case 'input_audio_buffer.committed':
+      if (wUserMsgPending) {
+        appendWidgetMessage('user', '...');
+        wUserMsgPending = false;
+        document.getElementById('widget-status-text').textContent = 'Processing…';
+      }
+      break;
+
+    case 'show_contact_form':
+      showContactForm(ev.leadId);
+      break;
+
+    case 'error':
+      console.error('[Widget] error', ev);
+      break;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  LANGUAGE SELECTION
+// ─────────────────────────────────────────────
+async function selectLanguage(lang) {
+  wChosenLanguage = lang;
+  wLanguageChosen = true;
+
+  if (wWs && wWs.readyState === WebSocket.OPEN) {
+    wWs.send(JSON.stringify({ type: 'language_selected', language: lang }));
+  }
+
+  await startWidgetMic();
+  setWidgetState('active');
+  setWidgetListening();
+  wLastActivityAt = Date.now();
+  startInactivityWatcher();
+}
+
+// ─────────────────────────────────────────────
+//  AUDIO — MIC CAPTURE
+// ─────────────────────────────────────────────
+async function startWidgetMic() {
+  wMicStream = await navigator.mediaDevices.getUserMedia({
+    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, sampleRate: 24000 }
+  });
+
+  const actualRate = wAudioCtx.sampleRate;
+  const TARGET_RATE = 24000;
+  const source = wAudioCtx.createMediaStreamSource(wMicStream);
+  wProcessor = wAudioCtx.createScriptProcessor(4096, 1, 1);
+
+  wProcessor.onaudioprocess = (e) => {
+    if (!wIsActive || !wWs || wWs.readyState !== WebSocket.OPEN || !wLanguageChosen) return;
+
+    let float32 = e.inputBuffer.getChannelData(0);
+    if (actualRate !== TARGET_RATE) float32 = wResample(float32, actualRate, TARGET_RATE);
+
+    if (wIsSpeaking) {
+      if (wEchoCooldown) return;
+      let sum = 0;
+      for (let i = 0; i < float32.length; i++) sum += float32[i] * float32[i];
+      const rms = Math.sqrt(sum / float32.length);
+      if (rms < 0.015) return;
+    }
+
+    const int16 = new Int16Array(float32.length);
+    for (let i = 0; i < float32.length; i++) int16[i] = Math.max(-32768, Math.min(32767, float32[i] * 32768));
+
+    const base64 = wArrayBufferToBase64(int16.buffer);
+    wWs.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: base64 }));
+  };
+
+  source.connect(wProcessor);
+  wProcessor.connect(wAudioCtx.destination);
+}
+
+function stopWidgetMic() {
+  if (wProcessor) { wProcessor.disconnect(); wProcessor = null; }
+  if (wMicStream) { wMicStream.getTracks().forEach(t => t.stop()); wMicStream = null; }
+  if (wAudioCtx)  { wAudioCtx.close(); wAudioCtx = null; }
+}
+
+// ─────────────────────────────────────────────
+//  AUDIO — PLAYBACK QUEUE
+// ─────────────────────────────────────────────
+function enqueueWidgetAudio(base64) {
+  if (!wAudioCtx) return;
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const int16 = new Int16Array(bytes.buffer);
+  const float32 = new Float32Array(int16.length);
+  for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768;
+  wAudioQueue.push(float32);
+  if (!wPlaybackActive) drainWidgetQueue();
+}
+
+function drainWidgetQueue() {
+  if (!wAudioCtx || wAudioQueue.length === 0) { wPlaybackActive = false; return; }
+  wPlaybackActive = true;
+  const total = wAudioQueue.reduce((s, a) => s + a.length, 0);
+  const merged = new Float32Array(total);
+  let offset = 0;
+  for (const chunk of wAudioQueue) { merged.set(chunk, offset); offset += chunk.length; }
+  wAudioQueue = [];
+
+  const buf = wAudioCtx.createBuffer(1, merged.length, 24000);
+  buf.getChannelData(0).set(merged);
+
+  wCurrentSource = wAudioCtx.createBufferSource();
+  wCurrentSource.buffer = buf;
+  wCurrentSource.connect(wAudioCtx.destination);
+  wCurrentSource.onended = () => { wCurrentSource = null; drainWidgetQueue(); };
+  wCurrentSource.start(Math.max(wAudioCtx.currentTime, wNextPlayAt));
+  wNextPlayAt = Math.max(wAudioCtx.currentTime, wNextPlayAt) + buf.duration;
+}
+
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function wResample(input, fromRate, toRate) {
+  const ratio = fromRate / toRate;
+  const outLen = Math.floor(input.length / ratio);
+  const out = new Float32Array(outLen);
+  for (let i = 0; i < outLen; i++) {
+    const src = i * ratio;
+    const lo = Math.floor(src);
+    const hi = Math.min(lo + 1, input.length - 1);
+    out[i] = input[lo] + (src - lo) * (input[hi] - input[lo]);
+  }
+  return out;
+}
+
+function wArrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function wEscHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─────────────────────────────────────────────
+//  UI STATE (mic / waveform / status)
+// ─────────────────────────────────────────────
+function setWidgetListening() {
+  const btn = document.getElementById('widget-mic-btn');
+  btn.className = 'listening';
+  document.getElementById('widget-waveform').classList.remove('active');
+  document.getElementById('widget-status-text').textContent = 'Listening…';
+  wIsSpeaking = false;
+}
+
+function setWidgetSpeaking() {
+  wEchoCooldown = true;
+  setTimeout(() => { wEchoCooldown = false; }, 3500);
+  document.getElementById('widget-waveform').classList.add('active');
+  if (wIsSpeaking) return;
+  wIsSpeaking = true;
+  document.getElementById('widget-mic-btn').className = 'speaking';
+  document.getElementById('widget-status-text').textContent = 'Speaking…';
+}
+
+function waitAndSetWidgetListening() {
+  setTimeout(() => {
+    if (wIsActive && wLanguageChosen && widgetState === 'active') setWidgetListening();
+  }, 600);
+}
+
+function appendWidgetMessage(role, text) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  const key = role + '::' + trimmed.slice(0, 80);
+  if (wSeenMessages.has(key)) return;
+  wSeenMessages.add(key);
+  const el = document.createElement('div');
+  el.className = 'w-msg ' + role;
+  el.innerHTML = '<div class="w-msg-label">' + (role === 'user' ? 'YOU' : 'JSW ASSIST') + '</div>' + wEscHtml(trimmed);
+  const box = document.getElementById('widget-transcript');
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ─────────────────────────────────────────────
+//  INACTIVITY AUTO-END (120s, 10s countdown in status text)
+// ─────────────────────────────────────────────
+function startInactivityWatcher() {
+  if (wInactivityTimer) clearInterval(wInactivityTimer);
+  wInactivityTimer = setInterval(() => {
+    if (!wLastActivityAt || widgetState !== 'active') return;
+    const idleMs = Date.now() - wLastActivityAt;
+    const remainingMs = INACTIVITY_LIMIT_MS - idleMs;
+
+    if (remainingMs <= 10000 && remainingMs > 0) {
+      document.getElementById('widget-status-text').textContent =
+        `Ending in ${Math.ceil(remainingMs / 1000)}s due to inactivity…`;
+    }
+
+    if (idleMs >= INACTIVITY_LIMIT_MS) {
+      endConversation();
+    }
+  }, 1000);
+}
+
+// ─────────────────────────────────────────────
+//  END / RESTART
+// ─────────────────────────────────────────────
+function endConversation() {
+  if (wInactivityTimer) { clearInterval(wInactivityTimer); wInactivityTimer = null; }
+  stopWidgetMic();
+  if (wWs) { wWs.close(); wWs = null; }
+  wIsActive = false;
+  wLanguageChosen = false;
+  wAudioQueue = [];
+  wPlaybackActive = false;
+
+  setWidgetState('ended');
+
+  setTimeout(() => {
+    if (widgetState === 'ended') resetWidgetToIdle();
+  }, 3000);
+}
+
+function resetWidgetToIdle() {
+  wSeenMessages.clear();
+  const t = document.getElementById('widget-transcript');
+  if (t) t.innerHTML = '';
+  setWidgetState('idle');
+  document.getElementById('state-connecting').style.display = 'none';
+  document.getElementById('state-conversation').style.display = 'none';
+  document.getElementById('state-ended').style.display = 'none';
+}
+
+function startNewConversation() {
+  resetWidgetToIdle();
+  setWidgetState('connecting');
+  startWidgetSession();
+}
+
+// ─────────────────────────────────────────────
+//  CONTACT FORM POPUP
+// ─────────────────────────────────────────────
+function showContactForm(leadId) {
+  const overlay = document.getElementById('widget-cf-overlay');
+  if (overlay) { overlay.dataset.leadId = leadId || ''; overlay.classList.add('open'); }
+}
+
+function closeContactForm() {
+  document.getElementById('widget-cf-overlay').classList.remove('open');
+}
+
+async function submitWidgetContactForm(e) {
+  e.preventDefault();
+  const overlay = document.getElementById('widget-cf-overlay');
+  const leadId  = overlay.dataset.leadId;
+  const payload = {
+    name:  document.getElementById('widget-cf-name').value,
+    phone: document.getElementById('widget-cf-phone').value,
+    email: document.getElementById('widget-cf-email').value,
+    query: document.getElementById('widget-cf-query').value
+  };
+  try {
+    if (leadId) {
+      await fetch('/api/leads/' + leadId + '/form', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+    overlay.classList.remove('open');
+    appendWidgetMessage('assistant', 'Thank you! Our sales team will call you back shortly.');
+  } catch (err) { console.error('Form error:', err); }
+}
+</script>
+
+</body>
+</html>

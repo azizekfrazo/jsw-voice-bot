@@ -11,7 +11,7 @@ const { JSW_KNOWLEDGE_BASE } = require('./knowledge');
 const app = express();
 app.use(express.json());
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 const server = http.createServer(app);
 
 // ── ZERO-DEPENDENCY JSON FILE DATABASE ──────────────────
@@ -112,15 +112,11 @@ This is a voice call. Long answers are rude.
 - When someone says "sales team" or "sales rep" they mean JSW Steel's team. Always.
 - Never ask "which company". Never say you cannot connect. Just call show_contact_form.
 
-== LANGUAGE — CRITICAL RULE ==
-Step 1: If the user's VERY FIRST message is in English → lock to English immediately, skip language question.
-Step 2: If the user's VERY FIRST message contains Hindi/Devanagari → lock to Hindi immediately, skip language question.
-Step 3: If the first message is unclear (noise, single syllable, or transcript is null) → ask ONCE: "Shall we speak in Hindi or English?"
-Step 4: After language is locked, NEVER switch. NEVER ask again.
-Step 5: If user says "English", "इंग्लीज", "इंग्लिश", "inglis", "anglais", "angrezi" → lock English.
-Step 6: If user says "Hindi", "हिंदी", "hindi" → lock Hindi.
-EXAMPLE — if English locked: every word must be English. NEVER use Hindi words.
-EXAMPLE — if Hindi locked: every word must be Hindi/Hinglish. NEVER use English sentences.
+== LANGUAGE ==
+The user's language preference has already been selected via a button before
+this conversation started. The session is already configured for the correct
+language. Simply respond in whatever language the instructions at the top specify.
+Never ask about language. Never switch languages.
 
 == HARD REFUSAL — say this exact line ==
 "I only help with JSW Steel products. What steel requirement can I assist with?"
@@ -276,7 +272,7 @@ wss.on('connection', (clientWs) => {
             openAiWs.send(JSON.stringify({
               type: 'response.create',
               response: {
-                instructions: 'This is the VERY FIRST message of a new conversation. Say ONLY this exact sentence one time and then stop completely: "Welcome to JSW Steel — India\'s largest and most trusted steel manufacturer. I\'m JSW Assist, your personal steel advisor. Shall we speak in Hindi, or would you prefer English?"'
+                instructions: 'Say exactly this and nothing else: "Welcome to JSW Steel — India\'s largest and most trusted steel manufacturer. I\'m JSW Assist. Please select your preferred language using the buttons below."'
               }
             }));
           }
@@ -324,6 +320,41 @@ wss.on('connection', (clientWs) => {
   openAiWs.on('close', () => console.log(`[${sessionId.slice(0,8)}] OpenAI closed`));
 
   clientWs.on('message', (data) => {
+    let parsed = null;
+    try { parsed = JSON.parse(data.toString()); } catch (_) { /* not JSON, relay raw */ }
+
+    if (parsed && parsed.type === 'language_selected') {
+      const lang = parsed.language === 'hi' ? 'hi' : 'en';
+      const session = sessions.get(sessionId);
+      if (session) session.language = lang === 'hi' ? 'hindi' : 'english';
+
+      const instructions = lang === 'hi'
+        ? 'CRITICAL: Respond ONLY in Hindi/Hinglish. Never use English sentences.\n' + SYSTEM_PROMPT
+        : 'CRITICAL: Respond ONLY in English. Never use Hindi.\n' + SYSTEM_PROMPT;
+
+      if (openAiWs.readyState === WebSocket.OPEN) {
+        openAiWs.send(JSON.stringify({
+          type: 'session.update',
+          session: {
+            type: 'realtime',
+            instructions: instructions,
+            audio: {
+              input: {
+                transcription: {
+                  model: 'whisper-1',
+                  language: lang,
+                  prompt: lang === 'hi'
+                    ? 'JSW Steel, टीएमटी बार, एचआर कॉइल, मात्रा, कीमत, डिलीवरी'
+                    : 'JSW Steel, TMT bars, HR coils, quantity, pricing, delivery'
+                }
+              }
+            }
+          }
+        }));
+      }
+      return;
+    }
+
     if (openAiWs.readyState === WebSocket.OPEN) openAiWs.send(data.toString());
   });
 
@@ -354,6 +385,14 @@ function handleLeadCapture(sessionId, callId, args) {
 }
 
 // ── REST API ─────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.redirect('/jsw-demo.html');
+});
+
+app.get('/bot', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.get('/api/leads',     (req, res) => res.json(db.getLeads(req.query.intent)));
 app.get('/api/leads/:id', (req, res) => { const l = db.getLead(req.params.id); l ? res.json(l) : res.status(404).json({error:'Not found'}); });
 app.get('/api/stats',     (req, res) => res.json(db.getStats()));

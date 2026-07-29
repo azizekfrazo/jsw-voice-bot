@@ -116,20 +116,17 @@ function handleServerEvent(ev) {
       const rawText = ev.transcript?.trim();
       if (!rawText) break;
 
-      // Always show transcript in readable form.
-      // If Whisper output contains Devanagari (Hindi accent typed as Hindi script),
-      // show a clean placeholder instead so transcript is always readable.
-      const hasDevanagari = /[ऀ-ॿ]/.test(rawText);
-      const displayText = hasDevanagari ? '🎤 Voice message' : rawText;
+      // Whisper is locked to the chosen language via session.update,
+      // so the transcript always arrives in the correct script.
       const box = document.getElementById('transcript');
       const placeholders = box ? box.querySelectorAll('.msg.user') : [];
       const last = placeholders[placeholders.length - 1];
       if (last && last.textContent.includes('...')) {
-        last.innerHTML = '<div class="msg-label">YOU</div>' + escHtml(displayText);
+        last.innerHTML = '<div class="msg-label">YOU</div>' + escHtml(rawText);
         seenMessages.delete('user::...');
-        seenMessages.add('user::' + displayText.slice(0, 80));
+        seenMessages.add('user::' + rawText.slice(0, 80));
       } else {
-        appendMessage('user', displayText);
+        appendMessage('user', rawText);
       }
       break;
     }
