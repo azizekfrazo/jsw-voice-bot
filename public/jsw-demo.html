@@ -482,7 +482,8 @@ let wLanguageChosen  = false;
 let wChosenLanguage  = null;
 let wGreetingAudioDone = false;
 let wUserMsgPending  = false;
-let wPendingAutoEnd  = false;
+let wPendingAutoEnd     = false; // model called end_conversation, waiting to hang up
+let wAudioStreamComplete = false; // server has finished sending this turn's audio
 const wSeenMessages  = new Set();
 
 // Playback queue
@@ -502,10 +503,9 @@ const INACTIVITY_LIMIT_MS = 120000;
 // ─────────────────────────────────────────────
 function toggleWidgetPanel() {
   if (panelOpen) {
-    // The trigger button shows an × while open — clicking it should
-    // end the conversation, not just hide the panel (that's what
-    // the minimize "—" button inside the header is for).
-    closePanelAndEnd();
+    // Trigger is hidden while the panel is open (see showPanel()), so this
+    // branch shouldn't normally run — kept as a safe fallback.
+    hidePanel();
   } else {
     showPanel();
     if (widgetState === 'idle') {
@@ -517,15 +517,16 @@ function toggleWidgetPanel() {
 
 function showPanel() {
   document.getElementById('widget-panel').classList.add('open');
-  document.getElementById('trigger-icon-mic').style.display = 'none';
-  document.getElementById('trigger-icon-close').style.display = '';
+  // The panel header already has its own minimize/close buttons —
+  // hide the floating trigger button while the panel is open to avoid
+  // a redundant second close control.
+  document.getElementById('widget-trigger').style.display = 'none';
   panelOpen = true;
 }
 
 function hidePanel() {
   document.getElementById('widget-panel').classList.remove('open');
-  document.getElementById('trigger-icon-mic').style.display = '';
-  document.getElementById('trigger-icon-close').style.display = 'none';
+  document.getElementById('widget-trigger').style.display = '';
   panelOpen = false;
 }
 
@@ -560,6 +561,7 @@ async function startWidgetSession() {
   wLanguageChosen = false;
   wChosenLanguage = null;
   wPendingAutoEnd = false;
+  wAudioStreamComplete = false;
 
   try {
     wAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
@@ -580,18 +582,19 @@ function handleWidgetEvent(ev) {
       break;
 
     case 'response.output_audio.delta':
+      wAudioStreamComplete = false;
       if (ev.delta) { enqueueWidgetAudio(ev.delta); setWidgetSpeaking(); }
       wLastActivityAt = Date.now();
       break;
 
     case 'response.output_audio.done':
       wLastActivityAt = Date.now();
+      wAudioStreamComplete = true;
       if (!wGreetingAudioDone) {
         wGreetingAudioDone = true;
         setWidgetState('language');
       } else if (wPendingAutoEnd) {
-        wPendingAutoEnd = false;
-        endConversation();
+        maybeAutoEnd();
       } else {
         waitAndSetWidgetListening();
       }
@@ -624,6 +627,8 @@ function handleWidgetEvent(ev) {
       wPlaybackActive = false;
       wNextPlayAt = 0;
       if (wCurrentSource) { try { wCurrentSource.stop(); } catch(_) {} wCurrentSource = null; }
+      // User is still talking — cancel any pending auto-end from a moment ago.
+      wPendingAutoEnd = false;
       setWidgetListening();
       wUserMsgPending = true;
       wLastActivityAt = Date.now();
@@ -731,7 +736,11 @@ function enqueueWidgetAudio(base64) {
 }
 
 function drainWidgetQueue() {
-  if (!wAudioCtx || wAudioQueue.length === 0) { wPlaybackActive = false; return; }
+  if (!wAudioCtx || wAudioQueue.length === 0) {
+    wPlaybackActive = false;
+    maybeAutoEnd();
+    return;
+  }
   wPlaybackActive = true;
   const total = wAudioQueue.reduce((s, a) => s + a.length, 0);
   const merged = new Float32Array(total);
@@ -837,6 +846,21 @@ function startInactivityWatcher() {
       endConversation();
     }
   }, 1000);
+}
+
+// ─────────────────────────────────────────────
+//  AUTO-END (model called end_conversation)
+// ─────────────────────────────────────────────
+// Only hang up once BOTH are true: the server has finished sending this
+// turn's audio (wAudioStreamComplete) AND the client has actually finished
+// playing it back (queue empty, nothing scheduled). Checked from both the
+// 'response.output_audio.done' handler and drainWidgetQueue's empty branch
+// since those two conditions can become true in either order.
+function maybeAutoEnd() {
+  if (!wPendingAutoEnd || !wAudioStreamComplete) return;
+  if (wPlaybackActive || wAudioQueue.length > 0 || wCurrentSource) return;
+  wPendingAutoEnd = false;
+  endConversation();
 }
 
 // ─────────────────────────────────────────────

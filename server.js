@@ -326,6 +326,14 @@ wss.on('connection', (clientWs) => {
       const oaWs = session.openAiWs;
       if (oaWs?.readyState === WebSocket.OPEN) {
         oaWs.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: ev.call_id, output: '{"success":true}' }}));
+        // A function-call turn produces no audio by itself — a fresh
+        // response.create is required to actually speak the goodbye.
+        oaWs.send(JSON.stringify({
+          type: 'response.create',
+          response: {
+            instructions: 'Say ONE short warm goodbye sentence now, in the language already locked for this conversation, then stop completely. Do not call any function. Do not ask any further questions.'
+          }
+        }));
       }
     }
 
