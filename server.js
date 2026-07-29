@@ -154,6 +154,18 @@ high = quantity >5MT AND delivery <3 months AND specific project AND decision ma
 medium = any 2 of above
 low = general inquiry or just researching
 
+== ENDING THE CONVERSATION ==
+Call end_conversation IMMEDIATELY (in the SAME turn as your reply) when the user:
+- Says goodbye, bye, thanks/thank you with no further question, "that's all", "that's it",
+  "I'm done", "nothing else", "ok bye", "gotta go", or the Hindi/Hinglish equivalents
+  (dhanyawad, theek hai bye, bas itna hi, nahi chahiye, ok thanks)
+- Has clearly gotten what they needed and is not asking anything further
+- Goes silent/says nothing more after you've already offered further help once
+Before/while calling it, say ONE short warm closing line (e.g. "Thank you for contacting
+JSW Steel, have a great day!" or "JSW Steel se sampark karne ke liye dhanyawad, have a great day!")
+then stop talking. Do not ask "anything else?" after already asking it once and getting a
+negative/closing answer — just end the conversation.
+
 == KNOWLEDGE BASE ==
 ${JSW_KNOWLEDGE_BASE}`;
 
@@ -185,6 +197,16 @@ const REALTIME_TOOLS = [{
     type: 'object',
     properties: {
       reason: { type: 'string', description: 'Reason: sales_rep_request | quote_request | complex_query' }
+    }
+  }
+}, {
+  type: 'function',
+  name: 'end_conversation',
+  description: 'End the call once the user has said goodbye, thanks with no further question, or has clearly finished the conversation. Call this immediately after saying a short closing line.',
+  parameters: {
+    type: 'object',
+    properties: {
+      reason: { type: 'string', description: 'Reason: user_said_goodbye | query_resolved | no_response_expected' }
     }
   }
 }];
@@ -292,6 +314,18 @@ wss.on('connection', (clientWs) => {
       if (oaWs?.readyState === WebSocket.OPEN) {
         oaWs.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: ev.call_id, output: '{"success":true}' }}));
         oaWs.send(JSON.stringify({ type: 'response.create' }));
+      }
+    }
+
+    if (ev.type === 'response.function_call_arguments.done' && ev.name === 'end_conversation') {
+      // Let the client know a closing line is coming so it can auto-hang-up
+      // once that farewell audio finishes playing.
+      if (clientWs.readyState === WebSocket.OPEN) {
+        clientWs.send(JSON.stringify({ type: 'end_conversation', leadId: session.leadId }));
+      }
+      const oaWs = session.openAiWs;
+      if (oaWs?.readyState === WebSocket.OPEN) {
+        oaWs.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: ev.call_id, output: '{"success":true}' }}));
       }
     }
 
