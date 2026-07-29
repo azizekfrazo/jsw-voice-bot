@@ -112,21 +112,27 @@ function handleServerEvent(ev) {
       break;
 
     // User speech → text
-    case 'conversation.item.input_audio_transcription.completed':
-      if (ev.transcript?.trim()) {
-        const box = document.getElementById('transcript');
-        const placeholders = box.querySelectorAll('.msg.user');
-        const last = placeholders[placeholders.length - 1];
-        if (last && last.textContent.includes('...')) {
-          last.innerHTML = '<div class="msg-label">YOU</div>' + escHtml(ev.transcript);
-          const key = 'user::...';
-          seenMessages.delete(key);
-          seenMessages.add('user::' + ev.transcript.trim().slice(0, 80));
-        } else {
-          appendMessage('user', ev.transcript);
-        }
+    case 'conversation.item.input_audio_transcription.completed': {
+      const rawText = ev.transcript?.trim();
+      if (!rawText) break;
+
+      // Always show transcript in readable form.
+      // If Whisper output contains Devanagari (Hindi accent typed as Hindi script),
+      // show a clean placeholder instead so transcript is always readable.
+      const hasDevanagari = /[ऀ-ॿ]/.test(rawText);
+      const displayText = hasDevanagari ? '🎤 Voice message' : rawText;
+      const box = document.getElementById('transcript');
+      const placeholders = box ? box.querySelectorAll('.msg.user') : [];
+      const last = placeholders[placeholders.length - 1];
+      if (last && last.textContent.includes('...')) {
+        last.innerHTML = '<div class="msg-label">YOU</div>' + escHtml(displayText);
+        seenMessages.delete('user::...');
+        seenMessages.add('user::' + displayText.slice(0, 80));
+      } else {
+        appendMessage('user', displayText);
       }
       break;
+    }
 
     case 'conversation.item.done':
       if (ev.item?.role === 'user') {
@@ -235,7 +241,7 @@ async function initAudio() {
       let sum = 0;
       for (let i = 0; i < float32.length; i++) sum += float32[i] * float32[i];
       const rms = Math.sqrt(sum / float32.length);
-      if (rms < 0.008) return;
+      if (rms < 0.015) return;
     }
 
     // Float32 → Int16 PCM
@@ -463,3 +469,14 @@ async function submitContactForm(e) {
     appendMessage('assistant', 'Thank you! Our sales team will call you back shortly.');
   } catch(err) { console.error('Form error:', err); }
 }
+
+// Auto-start when overlay is tapped
+document.addEventListener('DOMContentLoaded', () => {
+  const overlay = document.getElementById('start-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', async () => {
+      overlay.classList.add('hidden');
+      await startConversation();
+    });
+  }
+});

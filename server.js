@@ -97,7 +97,9 @@ const db = {
 };
 
 // ── SYSTEM PROMPT ────────────────────────────────────────
-const SYSTEM_PROMPT = `You are a JSW Steel customer support agent.
+const SYSTEM_PROMPT = `IMPORTANT: Never repeat the welcome greeting. It was already said at the start. Jump straight to where the conversation left off.
+
+You are a JSW Steel customer support agent.
 Your ONLY job is helping people buy or learn about JSW Steel products.
 
 == RESPONSE LENGTH — MOST IMPORTANT RULE ==
@@ -110,10 +112,15 @@ This is a voice call. Long answers are rude.
 - When someone says "sales team" or "sales rep" they mean JSW Steel's team. Always.
 - Never ask "which company". Never say you cannot connect. Just call show_contact_form.
 
-== LANGUAGE ==
-- Detect Hindi or English from the user's first reply.
-- Respond in the same language throughout. Switch if they switch.
-- For Hindi: use simple conversational Hindi, keep English technical terms (TMT, HR coil, MT).
+== LANGUAGE — CRITICAL RULE ==
+Step 1: If the user's VERY FIRST message is in English → lock to English immediately, skip language question.
+Step 2: If the user's VERY FIRST message contains Hindi/Devanagari → lock to Hindi immediately, skip language question.
+Step 3: If the first message is unclear (noise, single syllable, or transcript is null) → ask ONCE: "Shall we speak in Hindi or English?"
+Step 4: After language is locked, NEVER switch. NEVER ask again.
+Step 5: If user says "English", "इंग्लीज", "इंग्लिश", "inglis", "anglais", "angrezi" → lock English.
+Step 6: If user says "Hindi", "हिंदी", "hindi" → lock Hindi.
+EXAMPLE — if English locked: every word must be English. NEVER use Hindi words.
+EXAMPLE — if Hindi locked: every word must be Hindi/Hinglish. NEVER use English sentences.
 
 == HARD REFUSAL — say this exact line ==
 "I only help with JSW Steel products. What steel requirement can I assist with?"
@@ -122,15 +129,29 @@ Use for: general knowledge, competitors, off-topic questions, anything not about
 == CALL show_contact_form IMMEDIATELY — no follow-up questions first ==
 Triggers: pricing question, quote request, bulk order, "sales team", "human", "connect me",
           complex requirement, anything you are not 100% sure about.
-After calling it say only: "Form aa gaya — fill karein, hamari team call karegi."
-Or in English: "A form appeared — fill it and our team calls you back."
+After calling it say only:
+- If English locked: "A form appeared — fill it and our team calls you back."
+- If Hindi locked: "Form aa gaya — fill karein, hamari team call karegi."
 
-== QUALIFICATION — ask ONE per turn only ==
-"Aap kaunsa JSW product dhundh rahe hain?" / "Which JSW product are you looking for?"
-"Kitni matra chahiye — roughly bhi chalega?" / "What quantity do you need — rough is fine?"
-"Delivery kab chahiye?" / "When do you need delivery?"
-"Kisi specific project ke liye hai?" / "Is this for a specific project?"
-"Aap decision maker hain?" / "Are you the decision maker?"
+== QUALIFICATION — ask ONE per turn in the user's chosen language ==
+
+If English was chosen, use ONLY these:
+- "Which JSW product are you looking for?"
+- "What quantity do you need — rough is fine?"
+- "When do you need delivery?"
+- "Is this for a specific project like a building or factory?"
+- "Are you the decision maker for this purchase?"
+
+If Hindi was chosen, use ONLY these:
+- "Aapko JSW ka kaun sa product chahiye?"
+- "Kitni matra chahiye — rough bhi chalega?"
+- "Delivery kab chahiye?"
+- "Kisi specific project ke liye hai — jaise building ya factory?"
+- "Aap hi purchase ka decision lete hain?"
+
+IMPORTANT: Never mix languages in a single response.
+If English was chosen — every word you say must be English.
+If Hindi was chosen — every word you say must be Hindi or Hinglish.
 
 == INTENT — call capture_lead_info whenever you learn something new ==
 high = quantity >5MT AND delivery <3 months AND specific project AND decision maker
@@ -209,7 +230,7 @@ wss.on('connection', (clientWs) => {
             turn_detection: { type: 'semantic_vad' },
             transcription: {
               model: 'whisper-1',
-              prompt: 'JSW Steel, स्टील, TMT बार, HR कोइल, CR शीट, गैल्वेनाइज्ड, डिलीवरी, मात्रा'
+              prompt: 'JSW Steel, TMT bars, HR coils, CR sheets, galvanized, Fe-500D, grades, quantity, pricing, delivery. जेएसडब्ल्यू स्टील, टीएमटी बार, एचआर कॉइल, मात्रा, कीमत, डिलीवरी, ग्रेड, गैल्वेनाइज्ड'
             }
           },
           output: {
@@ -228,6 +249,25 @@ wss.on('connection', (clientWs) => {
     const session = sessions.get(sessionId);
     if (!session) return;
 
+    // Suppress responses to very short noise bursts (<600ms)
+    if (ev.type === 'input_audio_buffer.speech_stopped') {
+      const session = sessions.get(sessionId);
+      if (session && session.speechStartedAt) {
+        const dur = Date.now() - session.speechStartedAt;
+        if (dur < 600) {
+          // Too short — likely background noise, cancel the response
+          if (openAiWs.readyState === WebSocket.OPEN) {
+            openAiWs.send(JSON.stringify({ type: 'response.cancel' }));
+          }
+          session.speechStartedAt = null;
+        }
+      }
+    }
+
+    if (ev.type === 'input_audio_buffer.speech_started') {
+      session.speechStartedAt = Date.now();
+    }
+
     if (ev.type === 'session.updated') {
       if (!greetingSent) {
         greetingSent = true;
@@ -236,7 +276,7 @@ wss.on('connection', (clientWs) => {
             openAiWs.send(JSON.stringify({
               type: 'response.create',
               response: {
-                instructions: 'Say ONLY this exact sentence word for word, nothing more, do not improvise: "Welcome to JSW Steel — India\'s largest and most trusted steel manufacturer. I\'m JSW Assist, your personal steel advisor. Shall we speak in Hindi, or would you prefer English?"'
+                instructions: 'This is the VERY FIRST message of a new conversation. Say ONLY this exact sentence one time and then stop completely: "Welcome to JSW Steel — India\'s largest and most trusted steel manufacturer. I\'m JSW Assist, your personal steel advisor. Shall we speak in Hindi, or would you prefer English?"'
               }
             }));
           }

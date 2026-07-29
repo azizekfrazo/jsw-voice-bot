@@ -308,9 +308,49 @@
   #cf-overlay.open { display:flex; }
   #cf-overlay input, #cf-overlay textarea { padding:10px 14px; border:1.5px solid #E5E7EB; border-radius:8px; font-size:14px; width:100%; outline:none; font-family:inherit; }
   #cf-overlay input:focus, #cf-overlay textarea:focus { border-color:#002B5C; }
+
+  #start-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: linear-gradient(135deg, #002B5C 0%, #0A4B87 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; transition: opacity 0.5s;
+  }
+  #start-overlay.hidden { opacity: 0; pointer-events: none; }
+  #start-overlay .logo-big {
+    background: #E87722; color: white; font-size: 36px;
+    font-weight: 900; padding: 10px 24px; border-radius: 8px;
+    letter-spacing: 2px; margin-bottom: 24px;
+  }
+  #start-overlay h2 {
+    color: white; font-size: 22px; font-weight: 700;
+    margin-bottom: 8px; text-align: center;
+  }
+  #start-overlay p {
+    color: rgba(255,255,255,0.7); font-size: 15px;
+    margin-bottom: 40px; text-align: center;
+  }
+  #start-btn {
+    background: #E87722; color: white; border: none;
+    padding: 16px 48px; border-radius: 50px;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 8px 32px rgba(232,119,34,0.4);
+    animation: pulse-btn 2s infinite;
+  }
+  @keyframes pulse-btn {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
 </style>
 </head>
 <body>
+
+<div id="start-overlay">
+  <div class="logo-big">JSW</div>
+  <h2>Steel — AI Voice Assistant</h2>
+  <p>Your personal JSW Steel advisor.<br>Hindi and English supported.</p>
+  <button id="start-btn">Tap to Begin</button>
+</div>
 
 <header>
   <div class="logo-area">

@@ -1,0 +1,5 @@
+{
+  "watch": ["server.js", "knowledge.js"],
+  "ext": "js",
+  "ignore": ["leads.json", "*.db", "public/", "node_modules/"]
+}
