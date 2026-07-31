@@ -31,10 +31,10 @@ function saveDB(data) {
 }
 
 const db = {
-  insertLead(id, sessionId) {
+  insertLead(id, sessionId, mode = 'voice') {
     const data = loadDB();
     data.leads.push({
-      id, session_id: sessionId,
+      id, session_id: sessionId, mode,
       name: null, company: null, phone: null, email: null,
       product_interest: null, project_type: null,
       quantity_mt: null, timeline: null,
@@ -93,6 +93,48 @@ const db = {
       low: leads.filter(l => l.intent_level === 'low').length,
       qualified: leads.filter(l => l.name !== null).length
     };
+  }
+};
+
+// ── CHAT DATABASE (chats.json) ──────────────────────────
+// { chats: [{ id, leadId, sessionId, messages: [{role, text, ts}], language, created_at, updated_at }] }
+const CHATS_DB_FILE = path.join(__dirname, 'chats.json');
+
+function loadChatsDB() {
+  try {
+    if (fs.existsSync(CHATS_DB_FILE)) return JSON.parse(fs.readFileSync(CHATS_DB_FILE, 'utf8'));
+  } catch (_) {}
+  return { chats: [] };
+}
+
+function saveChatsDB(data) {
+  fs.writeFileSync(CHATS_DB_FILE, JSON.stringify(data, null, 2));
+}
+
+const chatDb = {
+  createChat(leadId, language) {
+    const data = loadChatsDB();
+    const chatId = uuidv4();
+    data.chats.push({
+      id: chatId, leadId, sessionId: null, messages: [],
+      language, created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+    });
+    saveChatsDB(data);
+    return chatId;
+  },
+
+  addMessage(chatId, role, text, language) {
+    const data = loadChatsDB();
+    const chat = data.chats.find(c => c.id === chatId);
+    if (!chat) return;
+    chat.messages.push({ role, text, ts: new Date().toISOString() });
+    if (language) chat.language = language;
+    chat.updated_at = new Date().toISOString();
+    saveChatsDB(data);
+  },
+
+  getChat(chatId) {
+    return loadChatsDB().chats.find(c => c.id === chatId) || null;
   }
 };
 
@@ -169,6 +211,17 @@ negative/closing answer — just end the conversation.
 == KNOWLEDGE BASE ==
 ${JSW_KNOWLEDGE_BASE}`;
 
+// Chat variant: same tone/knowledge/qualification — only the response-length
+// rule differs (written chat can carry a bit more text than a voice call).
+const CHAT_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(
+  `== RESPONSE LENGTH — MOST IMPORTANT RULE ==
+Maximum 2 short sentences. Never more. Count your sentences before replying.
+If you are about to say a third sentence, STOP and delete it.
+This is a voice call. Long answers are rude.`,
+  `== RESPONSE LENGTH — MOST IMPORTANT RULE ==
+Keep responses concise (3-4 sentences max) — written chat is easier to read than voice.`
+);
+
 // ── TOOLS ────────────────────────────────────────────────
 const REALTIME_TOOLS = [{
   type: 'function',
@@ -211,8 +264,93 @@ const REALTIME_TOOLS = [{
   }
 }];
 
+// Chat Completions expects tools wrapped as { type:'function', function: {...} }
+// instead of the Realtime API's flat { type:'function', name, ... } shape.
+const CHAT_TOOLS = REALTIME_TOOLS.map(t => ({
+  type: 'function',
+  function: { name: t.name, description: t.description, parameters: t.parameters }
+}));
+
 // ── SESSION STORE ────────────────────────────────────────
 const sessions = new Map();
+
+// ── CHAT (TEXT) SESSION STORE ────────────────────────────
+// leadId -> { chatId, language, lead, history: [{role, content, tool_calls?, tool_call_id?}] }
+const chatMemory = new Map();
+const CHAT_MODEL = 'gpt-4o-mini';
+
+async function callOpenAIChat(messages) {
+  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: CHAT_MODEL,
+      messages,
+      tools: CHAT_TOOLS,
+      tool_choice: 'auto'
+    })
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`OpenAI chat error ${resp.status}: ${errText}`);
+  }
+  return resp.json();
+}
+
+// Runs one user turn through the model, executing any tool calls locally
+// (mirrors the voice bot's capture_lead_info / show_contact_form / end_conversation
+// handling) and looping until the model produces an actual text reply.
+async function runChatTurn(entry, userMessage) {
+  entry.history.push({ role: 'user', content: userMessage });
+
+  let finalReply = '';
+  let firedFunctions = [];
+  let leadUpdates = null;
+  let showForm = false;
+  let ended = false;
+
+  for (let iter = 0; iter < 3; iter++) {
+    const messages = [{ role: 'system', content: entry.systemPrompt }, ...entry.history];
+    const completion = await callOpenAIChat(messages);
+    const msg = completion.choices[0].message;
+
+    if (msg.tool_calls && msg.tool_calls.length) {
+      entry.history.push({ role: 'assistant', content: msg.content || null, tool_calls: msg.tool_calls });
+
+      for (const call of msg.tool_calls) {
+        const name = call.function.name;
+        let args = {};
+        try { args = JSON.parse(call.function.arguments || '{}'); } catch (_) {}
+        firedFunctions.push(name);
+
+        if (name === 'capture_lead_info') {
+          const clean = Object.fromEntries(
+            Object.entries(args).filter(([, v]) => v !== null && v !== undefined && v !== '')
+          );
+          Object.assign(entry.lead, clean);
+          leadUpdates = { ...entry.lead };
+          db.updateLead(entry.leadId, { ...entry.lead, language: entry.language });
+        } else if (name === 'show_contact_form') {
+          showForm = true;
+        } else if (name === 'end_conversation') {
+          ended = true;
+        }
+
+        entry.history.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ success: true }) });
+      }
+      continue; // fetch the actual reply text now that tool results are available
+    }
+
+    finalReply = msg.content || '';
+    break;
+  }
+
+  entry.history.push({ role: 'assistant', content: finalReply });
+  return { reply: finalReply, functions: firedFunctions, leadUpdates, showForm, ended };
+}
 
 // ── WEBSOCKET SERVER ─────────────────────────────────────
 const wss = new WebSocket.Server({ server, path: '/realtime' });
@@ -452,6 +590,50 @@ app.post('/api/leads/:id/form', (req, res) => {
   lead.updated_at = new Date().toISOString();
   saveDB(data);
   res.json({ success: true });
+});
+
+app.post('/api/chat', async (req, res) => {
+  try {
+    let { leadId, message, language } = req.body;
+    if (!message || !message.trim()) return res.status(400).json({ error: 'message required' });
+
+    const lang = language === 'hi' ? 'hi' : 'en';
+    let entry = leadId ? chatMemory.get(leadId) : null;
+
+    if (!entry) {
+      leadId = leadId || uuidv4();
+      const langLabel = lang === 'hi' ? 'Hindi/Hinglish' : 'English';
+      const systemPrompt = `CRITICAL: Respond ONLY in ${langLabel}. Never switch languages.\n\n${CHAT_SYSTEM_PROMPT}`;
+
+      db.insertLead(leadId, null, 'chat');
+      const chatId = chatDb.createChat(leadId, lang === 'hi' ? 'hindi' : 'english');
+
+      entry = {
+        chatId, leadId,
+        language: lang === 'hi' ? 'hindi' : 'english',
+        systemPrompt, lead: {}, history: []
+      };
+      chatMemory.set(leadId, entry);
+    }
+
+    chatDb.addMessage(entry.chatId, 'user', message);
+    const result = await runChatTurn(entry, message);
+    chatDb.addMessage(entry.chatId, 'assistant', result.reply);
+
+    res.json({
+      reply: result.reply,
+      type: result.functions.length ? 'function_call' : 'text',
+      functionName: result.functions[0] || null,
+      leadUpdates: result.leadUpdates,
+      leadId,
+      chatId: entry.chatId,
+      showForm: result.showForm,
+      ended: result.ended
+    });
+  } catch (e) {
+    console.error('[Chat] error:', e.message);
+    res.status(500).json({ error: 'Chat error', message: e.message });
+  }
 });
 
 // ── START ────────────────────────────────────────────────

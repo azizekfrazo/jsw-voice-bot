@@ -261,6 +261,55 @@
     font-size:13.5px; font-weight:700; cursor:pointer;
   }
 
+  /* STATE 1b — MODE SELECT (Chat or Voice) */
+  #state-mode-select {
+    flex-direction:column; align-items:center; justify-content:center; gap:20px; height:100%; padding:24px;
+  }
+  .mode-btn-row { display:flex; gap:14px; }
+  .mode-btn {
+    width:130px; height:86px; background:white; border:2px solid var(--jsw-navy); color:var(--jsw-navy);
+    border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; transition:all 0.15s;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  }
+  .mode-btn span.emoji { font-size:26px; }
+  .mode-btn:hover { background:var(--jsw-orange); border-color:var(--jsw-orange); color:white; }
+
+  /* STATE — CHAT */
+  #state-chat { flex-direction:column; height:100%; }
+  #chat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  #chat-messages:empty::before {
+    content:"Type a message to start chatting…"; color:#9CA3AF; font-size:13px; text-align:center; margin-top:40px; display:block;
+  }
+  .chat-typing {
+    display:none; align-items:center; gap:6px; padding:0 16px 8px; font-size:12px; color:#9CA3AF; flex-shrink:0;
+  }
+  .chat-typing.visible { display:flex; }
+  .chat-typing .dots { display:flex; gap:3px; }
+  .chat-typing .dots span {
+    width:5px; height:5px; border-radius:50%; background:#9CA3AF; animation: typing-bounce 1.2s infinite;
+  }
+  .chat-typing .dots span:nth-child(2) { animation-delay:0.15s; }
+  .chat-typing .dots span:nth-child(3) { animation-delay:0.3s; }
+  @keyframes typing-bounce { 0%,60%,100%{transform:translateY(0);opacity:0.5} 30%{transform:translateY(-4px);opacity:1} }
+
+  #chat-input-row {
+    display:flex; gap:8px; padding:12px 16px; background:white; border-top:1px solid #E5E7EB; flex-shrink:0;
+  }
+  #chat-input {
+    flex:1; border:1.5px solid #E5E7EB; border-radius:20px; padding:9px 15px; font-size:13.5px;
+    outline:none; font-family:inherit;
+  }
+  #chat-input:focus { border-color:var(--jsw-navy); }
+  #chat-send-btn {
+    background:var(--jsw-orange); color:white; border:none; width:38px; height:38px; border-radius:50%;
+    cursor:pointer; font-size:15px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  }
+  #chat-send-btn:hover { background:var(--jsw-orange2); }
+  #chat-end-btn {
+    background:none; border:none; color:#DC2626; font-size:12px; font-weight:700; cursor:pointer;
+    text-decoration:underline; padding:0 16px 12px; text-align:center; flex-shrink:0;
+  }
+
   /* ═══════════ CONTACT FORM POPUP ═══════════ */
   #widget-cf-overlay {
     display:none; position:fixed; inset:0; background:rgba(10,22,40,0.75);
@@ -400,6 +449,14 @@
 
   <div id="widget-body">
 
+    <div id="state-mode-select" class="widget-state">
+      <div class="lang-card-title">How would you like to connect?</div>
+      <div class="mode-btn-row">
+        <button class="mode-btn" onclick="chooseChatMode()"><span class="emoji">💬</span>Chat</button>
+        <button class="mode-btn" onclick="chooseVoiceMode()"><span class="emoji">🎙️</span>Voice</button>
+      </div>
+    </div>
+
     <div id="state-connecting" class="widget-state">
       <div class="spinner"></div>
       <div>Connecting to JSW Assist...</div>
@@ -431,6 +488,27 @@
         <div id="widget-status-text">Listening…</div>
         <button id="widget-end-btn" onclick="endConversation()">End Conversation</button>
       </div>
+    </div>
+
+    <div id="state-chat-language" class="widget-state">
+      <div class="lang-card-title">Choose your language / भाषा चुनें</div>
+      <div class="lang-btn-row">
+        <button class="lang-btn" onclick="selectChatLanguage('en')">English</button>
+        <button class="lang-btn" onclick="selectChatLanguage('hi')">हिंदी</button>
+      </div>
+    </div>
+
+    <div id="state-chat" class="widget-state">
+      <div id="chat-messages"></div>
+      <div id="chat-typing" class="chat-typing">
+        <span class="dots"><span></span><span></span><span></span></span>
+        JSW Assist is typing...
+      </div>
+      <div id="chat-input-row">
+        <input id="chat-input" type="text" placeholder="Type your message..."/>
+        <button id="chat-send-btn" onclick="sendChatMessage()">➤</button>
+      </div>
+      <button id="chat-end-btn" onclick="endConversation()">End Chat</button>
     </div>
 
     <div id="state-ended" class="widget-state">
@@ -498,6 +576,12 @@ let wLastActivityAt   = null;
 let wInactivityTimer  = null;
 const INACTIVITY_LIMIT_MS = 120000;
 
+// Chat (text) mode state
+let cLeadId         = null;
+let cChatId         = null;
+let cChosenLanguage = 'en';
+let cSending        = false;
+
 // ─────────────────────────────────────────────
 //  PANEL / TRIGGER
 // ─────────────────────────────────────────────
@@ -509,10 +593,18 @@ function toggleWidgetPanel() {
   } else {
     showPanel();
     if (widgetState === 'idle') {
-      setWidgetState('connecting');
-      startWidgetSession();
+      setWidgetState('mode-select');
     }
   }
+}
+
+function chooseVoiceMode() {
+  setWidgetState('connecting');
+  startWidgetSession();
+}
+
+function chooseChatMode() {
+  setWidgetState('chat-language');
 }
 
 function showPanel() {
@@ -543,14 +635,19 @@ function closePanelAndEnd() {
 
 function setWidgetState(state) {
   widgetState = state;
+  document.getElementById('state-mode-select').style.display  = state === 'mode-select' ? 'flex' : 'none';
   document.getElementById('state-connecting').style.display   = state === 'connecting' ? 'flex' : 'none';
   document.getElementById('state-conversation').style.display = (state === 'language' || state === 'active') ? 'flex' : 'none';
+  document.getElementById('state-chat-language').style.display = state === 'chat-language' ? 'flex' : 'none';
+  document.getElementById('state-chat').style.display         = state === 'chat' ? 'flex' : 'none';
   document.getElementById('state-ended').style.display        = state === 'ended' ? 'flex' : 'none';
 
   document.getElementById('widget-lang-card').style.display  = state === 'language' ? 'flex' : 'none';
   document.getElementById('widget-bottom-bar').style.display = state === 'active' ? 'flex' : 'none';
 
-  document.getElementById('widget-status-dot').classList.toggle('active', state === 'language' || state === 'active');
+  document.getElementById('widget-status-dot').classList.toggle(
+    'active', state === 'language' || state === 'active' || state === 'chat' || state === 'chat-language'
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -886,16 +983,23 @@ function resetWidgetToIdle() {
   wSeenMessages.clear();
   const t = document.getElementById('widget-transcript');
   if (t) t.innerHTML = '';
+  const c = document.getElementById('chat-messages');
+  if (c) c.innerHTML = '';
+  cLeadId = null;
+  cChatId = null;
+  cChosenLanguage = 'en';
   setWidgetState('idle');
+  document.getElementById('state-mode-select').style.display = 'none';
   document.getElementById('state-connecting').style.display = 'none';
   document.getElementById('state-conversation').style.display = 'none';
+  document.getElementById('state-chat-language').style.display = 'none';
+  document.getElementById('state-chat').style.display = 'none';
   document.getElementById('state-ended').style.display = 'none';
 }
 
 function startNewConversation() {
   resetWidgetToIdle();
-  setWidgetState('connecting');
-  startWidgetSession();
+  setWidgetState('mode-select');
 }
 
 // ─────────────────────────────────────────────
@@ -909,6 +1013,98 @@ function showContactForm(leadId) {
 function closeContactForm() {
   document.getElementById('widget-cf-overlay').classList.remove('open');
 }
+
+// ─────────────────────────────────────────────
+//  CHAT (TEXT) MODE
+// ─────────────────────────────────────────────
+const CHAT_GREETING = {
+  en: "Welcome to JSW Steel! I'm JSW Assist. How can I help you with our steel products today?",
+  hi: 'जेएसडब्ल्यू स्टील में आपका स्वागत है! मैं JSW Assist हूं। मैं आपकी स्टील ज़रूरतों में कैसे मदद कर सकता हूं?'
+};
+
+function selectChatLanguage(lang) {
+  cChosenLanguage = lang;
+  setWidgetState('chat');
+  appendChatMessage('assistant', CHAT_GREETING[lang] || CHAT_GREETING.en);
+  document.getElementById('chat-input').focus();
+}
+
+function showChatTyping(visible) {
+  document.getElementById('chat-typing').classList.toggle('visible', visible);
+}
+
+function appendChatMessage(role, text) {
+  const trimmed = (text || '').trim();
+  if (!trimmed) return;
+  const el = document.createElement('div');
+  el.className = 'w-msg ' + role;
+  el.innerHTML = '<div class="w-msg-label">' + (role === 'user' ? 'YOU' : 'JSW ASSIST') + '</div>' + wEscHtml(trimmed);
+  const box = document.getElementById('chat-messages');
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+// Lightweight English-keyboard → Devanagari word map. Unknown words are left
+// as-is (Hinglish mixed in with converted words is acceptable per spec).
+const HI_TRANSLITERATE_MAP = {
+  namaste: 'नमस्ते', kya: 'क्या', hai: 'है', hain: 'हैं', haan: 'हाँ', nahi: 'नहीं',
+  mujhe: 'मुझे', aap: 'आप', hum: 'हम', yeh: 'यह', woh: 'वह', main: 'मैं',
+  theek: 'ठीक', accha: 'अच्छा', bataiye: 'बताइए', chahiye: 'चाहिए',
+  kitni: 'कितनी', kitna: 'कितना', matra: 'मात्रा', kab: 'कब', kaun: 'कौन', sa: 'सा',
+  ke: 'के', liye: 'लिए', bhi: 'भी', dhanyawad: 'धन्यवाद', shukriya: 'शुक्रिया',
+  kripya: 'कृपया', delivery: 'डिलीवरी', ok: 'ओके', bye: 'बाय', thanks: 'धन्यवाद',
+  namaskar: 'नमस्कार', kaise: 'कैसे', kahan: 'कहाँ', kyun: 'क्यों', bahut: 'बहुत'
+};
+
+function transliterateToHindi(text) {
+  return text.split(/(\s+)/).map(token => {
+    const clean = token.toLowerCase().replace(/[^a-z]/g, '');
+    if (!clean) return token;
+    return HI_TRANSLITERATE_MAP[clean] || token;
+  }).join('');
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  let text = input.value.trim();
+  if (!text || cSending) return;
+
+  if (cChosenLanguage === 'hi') text = transliterateToHindi(text);
+
+  appendChatMessage('user', text);
+  input.value = '';
+  cSending = true;
+  showChatTyping(true);
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: cLeadId, message: text, language: cChosenLanguage })
+    });
+    const data = await res.json();
+    if (data.leadId) cLeadId = data.leadId;
+    if (data.chatId) cChatId = data.chatId;
+
+    showChatTyping(false);
+    if (data.reply) appendChatMessage('assistant', data.reply);
+    if (data.showForm) showContactForm(cLeadId);
+    if (data.ended) setTimeout(() => { if (widgetState === 'chat') endConversation(); }, 1200);
+  } catch (err) {
+    showChatTyping(false);
+    appendChatMessage('assistant', 'Sorry, something went wrong. Please try again.');
+    console.error('[Chat] error', err);
+  } finally {
+    cSending = false;
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'chat-input') {
+    e.preventDefault();
+    sendChatMessage();
+  }
+});
 
 async function submitWidgetContactForm(e) {
   e.preventDefault();
